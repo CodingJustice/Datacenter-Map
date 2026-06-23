@@ -1,0 +1,57 @@
+plant_id,name,state,county,latitude,longitude,capacity_mw,reactor_count,statuses,type,source,source_url
+46.0,Browns Ferry,AL,Limestone,34.7042,-87.1189,3854.0,3,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+204.0,Clinton Power Station,IL,DeWitt,40.1719,-88.8339,1138.3,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+210.0,Wolf Creek Generating Station,KS,Coffey,38.23926,-95.68978,1296.3,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+371.0,Columbia Generating Station,WA,Benton,46.4711,-119.3339,1200.0,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+566.0,Millstone,CT,New London,41.3107,-72.1677,2259.9,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+621.0,Turkey Point,FL,Miami Dade,25.4356,-80.3308,1754.4,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+649.0,Vogtle,GA,Burke,33.1427,-81.7625,4658.0,4,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+869.0,Dresden Generating Station,IL,Grundy,41.39,-88.27,2018.6,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+880.0,Quad Cities Generating Station,IL,Rock Island,41.726111,-90.31028,2018.6,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+1715.0,Palisades,MI,Van Buren,42.323,-86.3146,811.8,1,(OA) Out of service but expected to return to service in next calendar year,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+1729.0,Fermi,MI,Monroe,41.9631,-83.2581,1217.0,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+1922.0,Monticello Nuclear Facility,MN,Wright,45.3338,-93.8493,685.0,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+1925.0,Prairie Island,MN,Goodhue,44.622,-92.6333,1186.2,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+2410.0,PSEG Salem Generating Station,NJ,Salem,39.4625,-75.5358,2340.0,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+2589.0,Nine Mile Point Nuclear Station,NY,Oswego,43.5211,-76.41,1901.1,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+3166.0,Peach Bottom,PA,York,39.758936,-76.26874,2876.4,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+3251.0,H B Robinson,SC,Darlington,34.4017,-80.1589,768.6,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+3265.0,Oconee,SC,Oconee,34.7939,-82.8986,2666.7,3,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+3806.0,Surry,VA,Surry,37.1661,-76.6986,1695.0,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+4046.0,Point Beach Nuclear Plant,WI,Manitowoc,44.2806,-87.5369,1286.0,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+4270.0,Waterford 3,LA,St Charles,29.995267,-90.47158,1199.8,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6000.0,Donald C Cook,MI,Berrien,41.975604,-86.56521,2285.3,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6001.0,Joseph M Farley,AL,Houston,31.2231,-85.1116,1776.4,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6008.0,Palo Verde,AZ,Maricopa,33.3881,-112.8617,4209.6,3,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6011.0,Calvert Cliffs Nuclear Power Plant,MD,Calvert,38.4344,-76.4417,1850.4,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6014.0,Brunswick Nuclear,NC,Brunswick,33.9597,-78.0114,2003.2,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6015.0,Harris (NC),NC,Wake,35.6334,-78.9556,950.9,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6020.0,Perry,OH,Lake,41.8006,-81.1439,1311.6,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6022.0,Braidwood Generation Station,IL,Will,41.2435,-88.2286,2449.8,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6023.0,Byron Generating Station,IL,Ogle,42.0742,-89.2819,2449.8,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6026.0,LaSalle Generating Station,IL,LaSalle,41.245498,-88.66907,2340.0,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6036.0,Catawba,SC,York,35.0514,-81.0694,2410.2,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6038.0,McGuire,NC,Mecklenburg,35.4331,-80.9486,2440.6,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6040.0,Beaver Valley,PA,Beaver,40.6219,-80.4336,1846.8,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6045.0,St Lucie,FL,St Lucie,27.348611,-80.24639,2160.0,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6051.0,Edwin I Hatch,GA,Appling,31.9342,-82.3447,1848.0,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6072.0,Grand Gulf,MS,Claiborne,32.0081,-91.0478,1440.0,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6099.0,Diablo Canyon,CA,San Luis Obispo,35.211536,-120.8555,2323.0,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6103.0,TalenEnergy Susquehanna,PA,Luzerne,41.0919,-76.1462,2532.0,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6105.0,Limerick,PA,Montgomery,40.224303,-75.58744,2277.0,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6110.0,James A Fitzpatrick,NY,Oswego,43.52139,-76.40839,883.3,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6115.0,Seabrook,NH,Rockingham,42.899167,-70.84889,1242.0,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6118.0,PSEG Hope Creek Generating Station,NJ,Salem,39.4666,-75.5377,1290.7,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6122.0,R E Ginna Nuclear Power Plant,NY,Wayne,43.2777,-77.3099,614.0,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6127.0,V C Summer,SC,Fairfield,34.2983,-81.3153,1029.6,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6145.0,Comanche Peak,TX,Somervell,32.298365,-97.78552,2430.0,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6149.0,Davis Besse,OH,Ottawa,41.5967,-83.0861,925.2,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6152.0,Sequoyah,TN,Hamilton,35.2267,-85.0917,2441.0,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6153.0,Callaway,MO,Callaway,38.758919,-91.77884,1235.8,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6168.0,North Anna,VA,Louisa,38.06,-77.7897,1959.4,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6251.0,South Texas Project,TX,Matagorda,28.795,-96.0481,2708.6,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+6462.0,River Bend,LA,West Feliciana,30.757,-91.3327,1035.9,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+7722.0,Watts Bar Nuclear Plant,TN,Rhea,35.6021,-84.7895,2539.8,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+8011.0,Crane Clean Energy Center,PA,Dauphin,40.1515,-76.7232,980.8,1,(OS) Out of service and NOT expected to return to service in next calendar year,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+8036.0,Cooper Nuclear Station,NE,Nemaha,40.3628,-95.6408,801.0,1,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/
+8055.0,Arkansas Nuclear One,AR,Pope,35.311,-93.2351,1845.0,2,(OP) Operating,Nuclear power plant,EIA-860M,https://www.eia.gov/electricity/data/eia860m/

@@ -1,0 +1,2480 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_0119889eb92fa7a1a71f71c6d90601e2 {
+                    position: relative;
+                    inline-size: 100.0%;
+                    block-size: 100.0%;
+                    inset-inline-start: 0.0%;
+                    inset-block-start: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                inline-size: 100%;
+                block-size: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                inset-block-start:0;
+                inset-block-end:0;
+                inset-inline-end:0;
+                inset-inline-start:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-minimap/3.6.1/Control.MiniMap.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-minimap/3.6.1/Control.MiniMap.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.fullscreen@3.0.0/Control.FullScreen.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.fullscreen@3.0.0/Control.FullScreen.css"/>
+</head>
+<body>
+    
+    
+    <div style="
+        position: fixed;
+        inset-block-start: 12px;
+        inset-inline-start: 50px;
+        z-index: 9999;
+        background: rgba(255,255,255,0.94);
+        border: 1px solid #c9c9c9;
+        border-radius: 6px;
+        padding: 10px 12px;
+        box-shadow: 0 1px 8px rgba(0,0,0,0.18);
+        font-family: Arial, sans-serif;
+        max-inline-size: 440px;">
+      <div style="font-size:16px;font-weight:700;">U.S. AI/Data Centers and Nuclear Power Plants</div>
+      <div style="font-size:12px;margin-block-start:4px;">
+        13 public AI/data-center markers + 56 EIA nuclear plant markers.
+        Nuclear source: EIA-860M April 2026.
+      </div>
+      <div style="font-size:12px;margin-block-start:6px;">
+        <span style="color:#2563eb;font-weight:700;">●</span> operating/expanding AI-data center
+        <span style="color:#f97316;font-weight:700;margin-inline-start:10px;">●</span> planned/under construction
+        <span style="color:#15803d;font-weight:700;margin-inline-start:10px;">●</span> nuclear
+      </div>
+    </div>
+    
+    
+            <div class="folium-map" id="map_0119889eb92fa7a1a71f71c6d90601e2" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_0119889eb92fa7a1a71f71c6d90601e2 = L.map(
+                "map_0119889eb92fa7a1a71f71c6d90601e2",
+                {
+                    center: [39.5, -98.35],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 4,
+  "zoomControl": true,
+  "preferCanvas": true,
+}
+
+                }
+            );
+            L.control.scale().addTo(map_0119889eb92fa7a1a71f71c6d90601e2);
+
+            
+
+        
+    
+            var tile_layer_493bd9e301d27ad344d5190d055523da = L.tileLayer(
+                "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 20,
+  "maxNativeZoom": 20,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e",
+  "subdomains": "abcd",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_493bd9e301d27ad344d5190d055523da.addTo(map_0119889eb92fa7a1a71f71c6d90601e2);
+        
+    
+            var feature_group_7917aa9d686e7589f7a665de3957018c = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var circle_marker_d5c900393831a07040e6240de1c9a730 = L.circleMarker(
+                [42.7261, -87.7829],
+                {"bubblingMouseEvents": true, "color": "#2563eb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2563eb", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 9, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_330b7de2a844b14e1368cedf51ad3643 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_9f2a4a6d3be19d87d1c73122f80f052f = $(`<div id="html_9f2a4a6d3be19d87d1c73122f80f052f" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>Fairwater 1 - Mount Pleasant</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>Microsoft</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>400</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>Mount Pleasant / Racine County, Wisconsin</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Cleanview public tracker; Microsoft Fairwater announcement</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://cleanview.co/data-centers/us</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>AI datacenter megafactory; public location is approximate.</td></tr></table></div>`)[0];
+                popup_330b7de2a844b14e1368cedf51ad3643.setContent(html_9f2a4a6d3be19d87d1c73122f80f052f);
+            
+        
+
+        circle_marker_d5c900393831a07040e6240de1c9a730.bindPopup(popup_330b7de2a844b14e1368cedf51ad3643)
+        ;
+
+        
+    
+    
+            circle_marker_d5c900393831a07040e6240de1c9a730.bindTooltip(
+                `<div>
+                     Fairwater 1 - Mount Pleasant (Microsoft)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_4b0061c70c61b9118040b391a630bc00 = L.circleMarker(
+                [41.0793, -85.1394],
+                {"bubblingMouseEvents": true, "color": "#2563eb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2563eb", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 9, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_5b1cf44dcfe5388e3edb7e7c956372d8 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_79cdad0938e81107782416c30d25e79d = $(`<div id="html_79cdad0938e81107782416c30d25e79d" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>Project Zodiac - Phase 1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>Google</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>400</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>Allen County, Indiana</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Cleanview public tracker</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://cleanview.co/data-centers/us</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>County-level public location.</td></tr></table></div>`)[0];
+                popup_5b1cf44dcfe5388e3edb7e7c956372d8.setContent(html_79cdad0938e81107782416c30d25e79d);
+            
+        
+
+        circle_marker_4b0061c70c61b9118040b391a630bc00.bindPopup(popup_5b1cf44dcfe5388e3edb7e7c956372d8)
+        ;
+
+        
+    
+    
+            circle_marker_4b0061c70c61b9118040b391a630bc00.bindTooltip(
+                `<div>
+                     Project Zodiac - Phase 1 (Google)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_d65af691c0b692055487dc793398eea6 = L.circleMarker(
+                [33.749, -84.388],
+                {"bubblingMouseEvents": true, "color": "#2563eb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2563eb", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_4ef7a0bfa1b1413a9d1ed123500906ce = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_ba52097d3b5cfcc5e01d4a862b41d307 = $(`<div id="html_ba52097d3b5cfcc5e01d4a862b41d307" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>Fairwater 2 - Atlanta</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>Microsoft</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>350</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>Fulton County, Georgia</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Cleanview public tracker</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://cleanview.co/data-centers/us</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>County/city-level public location.</td></tr></table></div>`)[0];
+                popup_4ef7a0bfa1b1413a9d1ed123500906ce.setContent(html_ba52097d3b5cfcc5e01d4a862b41d307);
+            
+        
+
+        circle_marker_d65af691c0b692055487dc793398eea6.bindPopup(popup_4ef7a0bfa1b1413a9d1ed123500906ce)
+        ;
+
+        
+    
+    
+            circle_marker_d65af691c0b692055487dc793398eea6.bindTooltip(
+                `<div>
+                     Fairwater 2 - Atlanta (Microsoft)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_913283f7187d365323cef7295da556cf = L.circleMarker(
+                [35.1495, -90.049],
+                {"bubblingMouseEvents": true, "color": "#2563eb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2563eb", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_dff3196f9ffd7606b88b37b0674dfb00 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_6759df4f85cdd10bd951d4ac283511f9 = $(`<div id="html_6759df4f85cdd10bd951d4ac283511f9" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>Colossus 1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>xAI</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>300</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>Memphis / Shelby County, Tennessee</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Cleanview public tracker; public reporting</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://cleanview.co/data-centers/us</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>AI supercomputer/data center; marker is city-level approximate.</td></tr></table></div>`)[0];
+                popup_dff3196f9ffd7606b88b37b0674dfb00.setContent(html_6759df4f85cdd10bd951d4ac283511f9);
+            
+        
+
+        circle_marker_913283f7187d365323cef7295da556cf.bindPopup(popup_dff3196f9ffd7606b88b37b0674dfb00)
+        ;
+
+        
+    
+    
+            circle_marker_913283f7187d365323cef7295da556cf.bindTooltip(
+                `<div>
+                     Colossus 1 (xAI)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_398fccee58e010088e86ab6185488ad0 = L.circleMarker(
+                [41.2619, -95.8608],
+                {"bubblingMouseEvents": true, "color": "#2563eb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2563eb", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_c44aedcfa674daae332dd56acb27ec4c = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_f52b057727211f992c31ba32fa0067de = $(`<div id="html_f52b057727211f992c31ba32fa0067de" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>Council Bluffs Data Center - Campus 2 West</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>Google</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>300</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>Council Bluffs / Pottawattamie County, Iowa</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Cleanview public tracker</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://cleanview.co/data-centers/us</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>Hyperscale cloud/AI campus; public location is approximate.</td></tr></table></div>`)[0];
+                popup_c44aedcfa674daae332dd56acb27ec4c.setContent(html_f52b057727211f992c31ba32fa0067de);
+            
+        
+
+        circle_marker_398fccee58e010088e86ab6185488ad0.bindPopup(popup_c44aedcfa674daae332dd56acb27ec4c)
+        ;
+
+        
+    
+    
+            circle_marker_398fccee58e010088e86ab6185488ad0.bindTooltip(
+                `<div>
+                     Council Bluffs Data Center - Campus 2 West (Google)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_43475ae0fc032ad424c07a38f3670aad = L.circleMarker(
+                [32.4487, -99.7331],
+                {"bubblingMouseEvents": true, "color": "#f97316", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#f97316", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_8632bf9ea6abc5fcc1ed0a7cb476aadc = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_e39ec89725e4733925f4e19724649ec3 = $(`<div id="html_e39ec89725e4733925f4e19724649ec3" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>Stargate Abilene</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>OpenAI / Oracle / Crusoe</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Under construction</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>200</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>Abilene / Taylor County, Texas</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Epoch AI public analysis; public reporting</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://epoch.ai/data-insights/data-center-sizes</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>Public reporting describes initial AI capacity expanding through 2026.</td></tr></table></div>`)[0];
+                popup_8632bf9ea6abc5fcc1ed0a7cb476aadc.setContent(html_e39ec89725e4733925f4e19724649ec3);
+            
+        
+
+        circle_marker_43475ae0fc032ad424c07a38f3670aad.bindPopup(popup_8632bf9ea6abc5fcc1ed0a7cb476aadc)
+        ;
+
+        
+    
+    
+            circle_marker_43475ae0fc032ad424c07a38f3670aad.bindTooltip(
+                `<div>
+                     Stargate Abilene (OpenAI / Oracle / Crusoe)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_fd772005edd088a14e41fcb6b63a0848 = L.circleMarker(
+                [32.4415, -91.754],
+                {"bubblingMouseEvents": true, "color": "#f97316", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#f97316", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 19, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_a0c4c91ceee959cefe38a90b342b86d2 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_82f9769d689689969f15323c0f4acf86 = $(`<div id="html_82f9769d689689969f15323c0f4acf86" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>Meta Hyperion</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>Meta</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Planned</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>5238</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>Richland Parish, Louisiana</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Meta announcement; Cleanview public tracker</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://datacenters.atmeta.com/richland-parish-data-center/</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>AI-optimized campus; marker is parish-level approximate.</td></tr></table></div>`)[0];
+                popup_a0c4c91ceee959cefe38a90b342b86d2.setContent(html_82f9769d689689969f15323c0f4acf86);
+            
+        
+
+        circle_marker_fd772005edd088a14e41fcb6b63a0848.bindPopup(popup_a0c4c91ceee959cefe38a90b342b86d2)
+        ;
+
+        
+    
+    
+            circle_marker_fd772005edd088a14e41fcb6b63a0848.bindTooltip(
+                `<div>
+                     Meta Hyperion (Meta)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_0a73d1b8962827631339ec61422d83a1 = L.circleMarker(
+                [42.1667, -83.7816],
+                {"bubblingMouseEvents": true, "color": "#f97316", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#f97316", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 11, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_b5abc08a9ad32857fe2a5ca2c136a842 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_b82c8e50bd7b190592db786f406d4700 = $(`<div id="html_b82c8e50bd7b190592db786f406d4700" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>Oracle / Stargate Michigan Campus</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>Oracle / Related Digital</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Planned</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1000</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>Saline Township, Michigan</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Business Insider public reporting</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.businessinsider.com/ai-data-center-saline-michigan-funding-openai-stargate-blackstone-pimco-2026-4</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>Reported AI/Stargate-linked campus; marker is township-level approximate.</td></tr></table></div>`)[0];
+                popup_b5abc08a9ad32857fe2a5ca2c136a842.setContent(html_b82c8e50bd7b190592db786f406d4700);
+            
+        
+
+        circle_marker_0a73d1b8962827631339ec61422d83a1.bindPopup(popup_b5abc08a9ad32857fe2a5ca2c136a842)
+        ;
+
+        
+    
+    
+            circle_marker_0a73d1b8962827631339ec61422d83a1.bindTooltip(
+                `<div>
+                     Oracle / Stargate Michigan Campus (Oracle / Related Digital)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_09b7248b0a22936e4623c92ff3fcd5e9 = L.circleMarker(
+                [40.0812, -82.8088],
+                {"bubblingMouseEvents": true, "color": "#2563eb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2563eb", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 11, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_d27f2b3674a88077c81b14fa47a0baee = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_7530eaee1b4ae21d137b19ff6f181f8e = $(`<div id="html_7530eaee1b4ae21d137b19ff6f181f8e" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>Google Columbus / New Albany Cluster</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>Google</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Operating / expanding</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1000</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>New Albany / Columbus, Ohio</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Data Center Richness / SemiAnalysis discussion</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://datacenterrichness.substack.com/p/data-centers-2026-the-largest-ai</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>Cluster-level marker; public reporting mixes cloud and AI workloads.</td></tr></table></div>`)[0];
+                popup_d27f2b3674a88077c81b14fa47a0baee.setContent(html_7530eaee1b4ae21d137b19ff6f181f8e);
+            
+        
+
+        circle_marker_09b7248b0a22936e4623c92ff3fcd5e9.bindPopup(popup_d27f2b3674a88077c81b14fa47a0baee)
+        ;
+
+        
+    
+    
+            circle_marker_09b7248b0a22936e4623c92ff3fcd5e9.bindTooltip(
+                `<div>
+                     Google Columbus / New Albany Cluster (Google)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_c8645447a6d760c3f11ed754d41e734c = L.circleMarker(
+                [39.0681, -83.0143],
+                {"bubblingMouseEvents": true, "color": "#f97316", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#f97316", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 22, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_ec5d9e91e4c319fd75e8e1c128941a04 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_811fb8394e0dac3da161731fc8ffe032 = $(`<div id="html_811fb8394e0dac3da161731fc8ffe032" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>PORTS Technology Campus - Phase 2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>SB Energy</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Planned</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>9200</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>Pike County, Ohio</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Cleanview public tracker</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://cleanview.co/data-centers/us</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>Large planned data-center campus; county-level public location.</td></tr></table></div>`)[0];
+                popup_ec5d9e91e4c319fd75e8e1c128941a04.setContent(html_811fb8394e0dac3da161731fc8ffe032);
+            
+        
+
+        circle_marker_c8645447a6d760c3f11ed754d41e734c.bindPopup(popup_ec5d9e91e4c319fd75e8e1c128941a04)
+        ;
+
+        
+    
+    
+            circle_marker_c8645447a6d760c3f11ed754d41e734c.bindTooltip(
+                `<div>
+                     PORTS Technology Campus - Phase 2 (SB Energy)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_503ea1c03b9047ac82ee08eb1c48e6e3 = L.circleMarker(
+                [35.3456, -101.3804],
+                {"bubblingMouseEvents": true, "color": "#f97316", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#f97316", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 20, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_36a1edd0b38682778d75fd5b93c56460 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_b6555247ad184f77e9e33654b2b60664 = $(`<div id="html_b6555247ad184f77e9e33654b2b60664" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>Fermi - Project Matador</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>Fermi America</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Planned</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>6000</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>Carson County, Texas</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Cleanview public tracker</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://cleanview.co/data-centers/us</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>Large planned data-center campus; county-level public location.</td></tr></table></div>`)[0];
+                popup_36a1edd0b38682778d75fd5b93c56460.setContent(html_b6555247ad184f77e9e33654b2b60664);
+            
+        
+
+        circle_marker_503ea1c03b9047ac82ee08eb1c48e6e3.bindPopup(popup_36a1edd0b38682778d75fd5b93c56460)
+        ;
+
+        
+    
+    
+            circle_marker_503ea1c03b9047ac82ee08eb1c48e6e3.bindTooltip(
+                `<div>
+                     Fermi - Project Matador (Fermi America)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_ad188d2a2c76afecb13a2bd53fb02616 = L.circleMarker(
+                [41.5102, -112.0155],
+                {"bubblingMouseEvents": true, "color": "#f97316", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#f97316", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 20, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_f3a952a443d1c1ab439409dceaa0b8f7 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_216b8a19631bc55d475de5297e33188d = $(`<div id="html_216b8a19631bc55d475de5297e33188d" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>Wonder Valley / Stratos Project - Phase 2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>O&#x27;Leary Digital</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Planned</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>6000</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>Box Elder County, Utah</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Cleanview public tracker</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://cleanview.co/data-centers/us</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>Large planned data-center campus; county-level public location.</td></tr></table></div>`)[0];
+                popup_f3a952a443d1c1ab439409dceaa0b8f7.setContent(html_216b8a19631bc55d475de5297e33188d);
+            
+        
+
+        circle_marker_ad188d2a2c76afecb13a2bd53fb02616.bindPopup(popup_f3a952a443d1c1ab439409dceaa0b8f7)
+        ;
+
+        
+    
+    
+            circle_marker_ad188d2a2c76afecb13a2bd53fb02616.bindTooltip(
+                `<div>
+                     Wonder Valley / Stratos Project - Phase 2 (O'Leary Digital)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_c5e5990beefacb2703cbb11026efa3de = L.circleMarker(
+                [38.8445, -82.1371],
+                {"bubblingMouseEvents": true, "color": "#f97316", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#f97316", "fillOpacity": 0.72, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 20, "stroke": true, "weight": 2}
+            ).addTo(feature_group_7917aa9d686e7589f7a665de3957018c);
+        
+    
+        var popup_5f855bc3e659532e1bf1f092b66b106c = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_18f5b8ac5197658ad25c5464c7f86512 = $(`<div id="html_18f5b8ac5197658ad25c5464c7f86512" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Name</th><td>Monarch Compute Campus - Phase 2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Developer</th><td>Nscale</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>Planned</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>6000</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Location</th><td>Mason County, West Virginia</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>Cleanview public tracker</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://cleanview.co/data-centers/us</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Notes</th><td>Large planned data-center campus; county-level public location.</td></tr></table></div>`)[0];
+                popup_5f855bc3e659532e1bf1f092b66b106c.setContent(html_18f5b8ac5197658ad25c5464c7f86512);
+            
+        
+
+        circle_marker_c5e5990beefacb2703cbb11026efa3de.bindPopup(popup_5f855bc3e659532e1bf1f092b66b106c)
+        ;
+
+        
+    
+    
+            circle_marker_c5e5990beefacb2703cbb11026efa3de.bindTooltip(
+                `<div>
+                     Monarch Compute Campus - Phase 2 (Nscale)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            feature_group_7917aa9d686e7589f7a665de3957018c.addTo(map_0119889eb92fa7a1a71f71c6d90601e2);
+        
+    
+            var feature_group_cd1f4d0a2a4ccf4a7871f81232896d97 = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var circle_marker_d5b212e7b9b04b40b8c020238981026f = L.circleMarker(
+                [34.7042, -87.1189],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 17, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_89dbd80214e8c445ccf11c0289c0d708 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_3cedfb675377e7cdb348dfee434c3189 = $(`<div id="html_3cedfb675377e7cdb348dfee434c3189" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Browns Ferry</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>AL</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Limestone</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>46.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>3854.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>3</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_89dbd80214e8c445ccf11c0289c0d708.setContent(html_3cedfb675377e7cdb348dfee434c3189);
+            
+        
+
+        circle_marker_d5b212e7b9b04b40b8c020238981026f.bindPopup(popup_89dbd80214e8c445ccf11c0289c0d708)
+        ;
+
+        
+    
+    
+            circle_marker_d5b212e7b9b04b40b8c020238981026f.bindTooltip(
+                `<div>
+                     Browns Ferry (AL)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_1b2816be9f9143a5b75c6a393cca769b = L.circleMarker(
+                [40.1719, -88.8339],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 11, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_371434771ee9a7e4b2c504f98cf023af = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_cc9b9bedd3195c73d6d784ca1256318c = $(`<div id="html_cc9b9bedd3195c73d6d784ca1256318c" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Clinton Power Station</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>IL</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>DeWitt</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>204.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1138.3</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_371434771ee9a7e4b2c504f98cf023af.setContent(html_cc9b9bedd3195c73d6d784ca1256318c);
+            
+        
+
+        circle_marker_1b2816be9f9143a5b75c6a393cca769b.bindPopup(popup_371434771ee9a7e4b2c504f98cf023af)
+        ;
+
+        
+    
+    
+            circle_marker_1b2816be9f9143a5b75c6a393cca769b.bindTooltip(
+                `<div>
+                     Clinton Power Station (IL)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_fc758cd7880e0cebe0a8fa982d6d29e0 = L.circleMarker(
+                [38.23926, -95.68978],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_ced2e965637e9524bd1435148750bb27 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_a8afad277e0ec522393bcebff107d35d = $(`<div id="html_a8afad277e0ec522393bcebff107d35d" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Wolf Creek Generating Station</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>KS</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Coffey</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>210.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1296.3</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_ced2e965637e9524bd1435148750bb27.setContent(html_a8afad277e0ec522393bcebff107d35d);
+            
+        
+
+        circle_marker_fc758cd7880e0cebe0a8fa982d6d29e0.bindPopup(popup_ced2e965637e9524bd1435148750bb27)
+        ;
+
+        
+    
+    
+            circle_marker_fc758cd7880e0cebe0a8fa982d6d29e0.bindTooltip(
+                `<div>
+                     Wolf Creek Generating Station (KS)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_2876c55a52a8de7697c39de16d30bea3 = L.circleMarker(
+                [46.4711, -119.3339],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 11, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_e86a42254679c858b91ce7d8aad4b1be = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_051fda319c7e59559dac28b42d0e55e4 = $(`<div id="html_051fda319c7e59559dac28b42d0e55e4" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Columbia Generating Station</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>WA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Benton</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>371.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1200.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_e86a42254679c858b91ce7d8aad4b1be.setContent(html_051fda319c7e59559dac28b42d0e55e4);
+            
+        
+
+        circle_marker_2876c55a52a8de7697c39de16d30bea3.bindPopup(popup_e86a42254679c858b91ce7d8aad4b1be)
+        ;
+
+        
+    
+    
+            circle_marker_2876c55a52a8de7697c39de16d30bea3.bindTooltip(
+                `<div>
+                     Columbia Generating Station (WA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_8210aae3f484bf0ea330c383e79ac18d = L.circleMarker(
+                [41.3107, -72.1677],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_0ddf540cd4821d6d6be1b50a6ab6025b = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_fda786dbd742dc0425f32a97b0f818c4 = $(`<div id="html_fda786dbd742dc0425f32a97b0f818c4" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Millstone</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>CT</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>New London</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>566.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2259.9</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_0ddf540cd4821d6d6be1b50a6ab6025b.setContent(html_fda786dbd742dc0425f32a97b0f818c4);
+            
+        
+
+        circle_marker_8210aae3f484bf0ea330c383e79ac18d.bindPopup(popup_0ddf540cd4821d6d6be1b50a6ab6025b)
+        ;
+
+        
+    
+    
+            circle_marker_8210aae3f484bf0ea330c383e79ac18d.bindTooltip(
+                `<div>
+                     Millstone (CT)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_80642e585b80797b2dfc3878fa9a42f1 = L.circleMarker(
+                [25.4356, -80.3308],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_e632a4aa46b9bfe8d5e0443bcfe5e45f = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_01b637caa194aea1879e40d909820a17 = $(`<div id="html_01b637caa194aea1879e40d909820a17" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Turkey Point</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>FL</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Miami Dade</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>621.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1754.4</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_e632a4aa46b9bfe8d5e0443bcfe5e45f.setContent(html_01b637caa194aea1879e40d909820a17);
+            
+        
+
+        circle_marker_80642e585b80797b2dfc3878fa9a42f1.bindPopup(popup_e632a4aa46b9bfe8d5e0443bcfe5e45f)
+        ;
+
+        
+    
+    
+            circle_marker_80642e585b80797b2dfc3878fa9a42f1.bindTooltip(
+                `<div>
+                     Turkey Point (FL)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_e672d9595908fe57f9c8685bc2353be7 = L.circleMarker(
+                [33.1427, -81.7625],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 18, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_83b262027128996032c1559b14409b78 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_8d7350e808845f3db35322f8f3148470 = $(`<div id="html_8d7350e808845f3db35322f8f3148470" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Vogtle</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>GA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Burke</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>649.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>4658.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>4</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_83b262027128996032c1559b14409b78.setContent(html_8d7350e808845f3db35322f8f3148470);
+            
+        
+
+        circle_marker_e672d9595908fe57f9c8685bc2353be7.bindPopup(popup_83b262027128996032c1559b14409b78)
+        ;
+
+        
+    
+    
+            circle_marker_e672d9595908fe57f9c8685bc2353be7.bindTooltip(
+                `<div>
+                     Vogtle (GA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_b01e4719b65b962489d7aec735a9a877 = L.circleMarker(
+                [41.39, -88.27],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_9592d0482783a6932cce059e07900121 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_8553e564b29b17b3ab339ede0642c94c = $(`<div id="html_8553e564b29b17b3ab339ede0642c94c" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Dresden Generating Station</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>IL</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Grundy</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>869.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2018.6</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_9592d0482783a6932cce059e07900121.setContent(html_8553e564b29b17b3ab339ede0642c94c);
+            
+        
+
+        circle_marker_b01e4719b65b962489d7aec735a9a877.bindPopup(popup_9592d0482783a6932cce059e07900121)
+        ;
+
+        
+    
+    
+            circle_marker_b01e4719b65b962489d7aec735a9a877.bindTooltip(
+                `<div>
+                     Dresden Generating Station (IL)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_1ab39cce20b8a924df1cea88effa4478 = L.circleMarker(
+                [41.726111, -90.31028],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_9e5a6279792382dd6a453f6678f42b04 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_b0421a9d9a70f2c5cf1e1132a4087ed0 = $(`<div id="html_b0421a9d9a70f2c5cf1e1132a4087ed0" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Quad Cities Generating Station</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>IL</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Rock Island</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>880.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2018.6</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_9e5a6279792382dd6a453f6678f42b04.setContent(html_b0421a9d9a70f2c5cf1e1132a4087ed0);
+            
+        
+
+        circle_marker_1ab39cce20b8a924df1cea88effa4478.bindPopup(popup_9e5a6279792382dd6a453f6678f42b04)
+        ;
+
+        
+    
+    
+            circle_marker_1ab39cce20b8a924df1cea88effa4478.bindTooltip(
+                `<div>
+                     Quad Cities Generating Station (IL)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_75a9895658006b1a1c95f95a1700c3b9 = L.circleMarker(
+                [42.323, -86.3146],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_dad8b77d36a2c6d59b562c4b0d097fce = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_0c979ffff7646d98fb7744c0ee953080 = $(`<div id="html_0c979ffff7646d98fb7744c0ee953080" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Palisades</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>MI</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Van Buren</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>1715.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>811.8</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OA) Out of service but expected to return to service in next calendar year</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_dad8b77d36a2c6d59b562c4b0d097fce.setContent(html_0c979ffff7646d98fb7744c0ee953080);
+            
+        
+
+        circle_marker_75a9895658006b1a1c95f95a1700c3b9.bindPopup(popup_dad8b77d36a2c6d59b562c4b0d097fce)
+        ;
+
+        
+    
+    
+            circle_marker_75a9895658006b1a1c95f95a1700c3b9.bindTooltip(
+                `<div>
+                     Palisades (MI)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_0f59264320a521f08daed2a78afbbc7e = L.circleMarker(
+                [41.9631, -83.2581],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 11, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_bbc2e18a2838c24ffdda0c911e1987fa = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_362f26917905eb1d2a814497cd69927c = $(`<div id="html_362f26917905eb1d2a814497cd69927c" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Fermi</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>MI</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Monroe</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>1729.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1217.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_bbc2e18a2838c24ffdda0c911e1987fa.setContent(html_362f26917905eb1d2a814497cd69927c);
+            
+        
+
+        circle_marker_0f59264320a521f08daed2a78afbbc7e.bindPopup(popup_bbc2e18a2838c24ffdda0c911e1987fa)
+        ;
+
+        
+    
+    
+            circle_marker_0f59264320a521f08daed2a78afbbc7e.bindTooltip(
+                `<div>
+                     Fermi (MI)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_01da0e16ee672c936f01f293d59e842a = L.circleMarker(
+                [45.3338, -93.8493],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_dc2df19d3760df871c327e5882dae5cb = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_4b3a8b6dfb2e294e0e5a0208da554ede = $(`<div id="html_4b3a8b6dfb2e294e0e5a0208da554ede" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Monticello Nuclear Facility</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>MN</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Wright</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>1922.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>685.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_dc2df19d3760df871c327e5882dae5cb.setContent(html_4b3a8b6dfb2e294e0e5a0208da554ede);
+            
+        
+
+        circle_marker_01da0e16ee672c936f01f293d59e842a.bindPopup(popup_dc2df19d3760df871c327e5882dae5cb)
+        ;
+
+        
+    
+    
+            circle_marker_01da0e16ee672c936f01f293d59e842a.bindTooltip(
+                `<div>
+                     Monticello Nuclear Facility (MN)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_9b334e3318b2d6bc2137bf857407b5a0 = L.circleMarker(
+                [44.622, -92.6333],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 11, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_03ccaf267defb2414efa5c835eec1791 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_83b3b597e45be720b9c2cbcbfc67ff5e = $(`<div id="html_83b3b597e45be720b9c2cbcbfc67ff5e" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Prairie Island</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>MN</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Goodhue</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>1925.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1186.2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_03ccaf267defb2414efa5c835eec1791.setContent(html_83b3b597e45be720b9c2cbcbfc67ff5e);
+            
+        
+
+        circle_marker_9b334e3318b2d6bc2137bf857407b5a0.bindPopup(popup_03ccaf267defb2414efa5c835eec1791)
+        ;
+
+        
+    
+    
+            circle_marker_9b334e3318b2d6bc2137bf857407b5a0.bindTooltip(
+                `<div>
+                     Prairie Island (MN)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_dac58eda63aa1d4193d930f1fbb2c306 = L.circleMarker(
+                [39.4625, -75.5358],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_e1968e1e9ad9cc4724d6b06b2d85558b = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_25451f93053cd837757731c1ca20a97f = $(`<div id="html_25451f93053cd837757731c1ca20a97f" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>PSEG Salem Generating Station</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>NJ</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Salem</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>2410.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2340.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_e1968e1e9ad9cc4724d6b06b2d85558b.setContent(html_25451f93053cd837757731c1ca20a97f);
+            
+        
+
+        circle_marker_dac58eda63aa1d4193d930f1fbb2c306.bindPopup(popup_e1968e1e9ad9cc4724d6b06b2d85558b)
+        ;
+
+        
+    
+    
+            circle_marker_dac58eda63aa1d4193d930f1fbb2c306.bindTooltip(
+                `<div>
+                     PSEG Salem Generating Station (NJ)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_3152fc3714b8e95360dc6fbc54ae79ed = L.circleMarker(
+                [43.5211, -76.41],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_0283c7c6e489060f6acfba222a00c7ba = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_8da2c6c3e7b2985512f6557c0a947da3 = $(`<div id="html_8da2c6c3e7b2985512f6557c0a947da3" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Nine Mile Point Nuclear Station</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>NY</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Oswego</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>2589.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1901.1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_0283c7c6e489060f6acfba222a00c7ba.setContent(html_8da2c6c3e7b2985512f6557c0a947da3);
+            
+        
+
+        circle_marker_3152fc3714b8e95360dc6fbc54ae79ed.bindPopup(popup_0283c7c6e489060f6acfba222a00c7ba)
+        ;
+
+        
+    
+    
+            circle_marker_3152fc3714b8e95360dc6fbc54ae79ed.bindTooltip(
+                `<div>
+                     Nine Mile Point Nuclear Station (NY)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_448ec83dcc19465575c91a833e4f10f9 = L.circleMarker(
+                [39.758936, -76.26874],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 15, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_ddc2421824f17a3a0d95c3167d73bab3 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_a8e56c00a50e9ee0a8c2d1a6ced3d204 = $(`<div id="html_a8e56c00a50e9ee0a8c2d1a6ced3d204" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Peach Bottom</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>PA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>York</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>3166.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2876.4</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_ddc2421824f17a3a0d95c3167d73bab3.setContent(html_a8e56c00a50e9ee0a8c2d1a6ced3d204);
+            
+        
+
+        circle_marker_448ec83dcc19465575c91a833e4f10f9.bindPopup(popup_ddc2421824f17a3a0d95c3167d73bab3)
+        ;
+
+        
+    
+    
+            circle_marker_448ec83dcc19465575c91a833e4f10f9.bindTooltip(
+                `<div>
+                     Peach Bottom (PA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_de1b137f4da24e6ca5a8f85348018dff = L.circleMarker(
+                [34.4017, -80.1589],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_54af315fd3830c5d71879bf4337dd8b9 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_d1280e25c6712b66c6b6aa7103e15bec = $(`<div id="html_d1280e25c6712b66c6b6aa7103e15bec" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>H B Robinson</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>SC</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Darlington</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>3251.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>768.6</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_54af315fd3830c5d71879bf4337dd8b9.setContent(html_d1280e25c6712b66c6b6aa7103e15bec);
+            
+        
+
+        circle_marker_de1b137f4da24e6ca5a8f85348018dff.bindPopup(popup_54af315fd3830c5d71879bf4337dd8b9)
+        ;
+
+        
+    
+    
+            circle_marker_de1b137f4da24e6ca5a8f85348018dff.bindTooltip(
+                `<div>
+                     H B Robinson (SC)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_11ce7c09409e8fa55fd2f09532b7e763 = L.circleMarker(
+                [34.7939, -82.8986],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 15, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_92a793d2c3f861cd481512d861db0112 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_f79e1626bd4e67e0ced33f9a59ae6992 = $(`<div id="html_f79e1626bd4e67e0ced33f9a59ae6992" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Oconee</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>SC</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Oconee</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>3265.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2666.7</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>3</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_92a793d2c3f861cd481512d861db0112.setContent(html_f79e1626bd4e67e0ced33f9a59ae6992);
+            
+        
+
+        circle_marker_11ce7c09409e8fa55fd2f09532b7e763.bindPopup(popup_92a793d2c3f861cd481512d861db0112)
+        ;
+
+        
+    
+    
+            circle_marker_11ce7c09409e8fa55fd2f09532b7e763.bindTooltip(
+                `<div>
+                     Oconee (SC)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_945e3f9f50f170828e3d656da4f7ad37 = L.circleMarker(
+                [37.1661, -76.6986],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_a92f164834dcebea1d0a2377deaf9bbe = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_e982b2e9f956dfd3cb0e7d1b42e4a15a = $(`<div id="html_e982b2e9f956dfd3cb0e7d1b42e4a15a" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Surry</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>VA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Surry</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>3806.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1695.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_a92f164834dcebea1d0a2377deaf9bbe.setContent(html_e982b2e9f956dfd3cb0e7d1b42e4a15a);
+            
+        
+
+        circle_marker_945e3f9f50f170828e3d656da4f7ad37.bindPopup(popup_a92f164834dcebea1d0a2377deaf9bbe)
+        ;
+
+        
+    
+    
+            circle_marker_945e3f9f50f170828e3d656da4f7ad37.bindTooltip(
+                `<div>
+                     Surry (VA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_6ccd03d2df44fa11383f210a3a413c0f = L.circleMarker(
+                [44.2806, -87.5369],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_9e254fdab2590bb27fdcc1cb74e34ec9 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_867680fe9428bd415251ff3f346d6cd5 = $(`<div id="html_867680fe9428bd415251ff3f346d6cd5" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Point Beach Nuclear Plant</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>WI</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Manitowoc</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>4046.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1286.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_9e254fdab2590bb27fdcc1cb74e34ec9.setContent(html_867680fe9428bd415251ff3f346d6cd5);
+            
+        
+
+        circle_marker_6ccd03d2df44fa11383f210a3a413c0f.bindPopup(popup_9e254fdab2590bb27fdcc1cb74e34ec9)
+        ;
+
+        
+    
+    
+            circle_marker_6ccd03d2df44fa11383f210a3a413c0f.bindTooltip(
+                `<div>
+                     Point Beach Nuclear Plant (WI)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_81069c41bbce6acf8b1497d6cfd8b91b = L.circleMarker(
+                [29.995267, -90.47158],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 11, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_9d4adfb8d1b5fee793bf498dd9bba538 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_1365ba48e5564b6b24417001ee17b51b = $(`<div id="html_1365ba48e5564b6b24417001ee17b51b" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Waterford 3</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>LA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>St Charles</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>4270.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1199.8</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_9d4adfb8d1b5fee793bf498dd9bba538.setContent(html_1365ba48e5564b6b24417001ee17b51b);
+            
+        
+
+        circle_marker_81069c41bbce6acf8b1497d6cfd8b91b.bindPopup(popup_9d4adfb8d1b5fee793bf498dd9bba538)
+        ;
+
+        
+    
+    
+            circle_marker_81069c41bbce6acf8b1497d6cfd8b91b.bindTooltip(
+                `<div>
+                     Waterford 3 (LA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_7145696a8ea79127aa14951e23f53ff6 = L.circleMarker(
+                [41.975604, -86.56521],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_8736bd17cd01ad85a4d661e7ed353337 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_142fed7cb78b92053a45301b734e27da = $(`<div id="html_142fed7cb78b92053a45301b734e27da" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Donald C Cook</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>MI</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Berrien</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6000.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2285.3</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_8736bd17cd01ad85a4d661e7ed353337.setContent(html_142fed7cb78b92053a45301b734e27da);
+            
+        
+
+        circle_marker_7145696a8ea79127aa14951e23f53ff6.bindPopup(popup_8736bd17cd01ad85a4d661e7ed353337)
+        ;
+
+        
+    
+    
+            circle_marker_7145696a8ea79127aa14951e23f53ff6.bindTooltip(
+                `<div>
+                     Donald C Cook (MI)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_1f8c8c44b4b106a792dce0690e55a436 = L.circleMarker(
+                [31.2231, -85.1116],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_5206bd889d378fb53e416724a166b7a4 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_9c297507908e8b298a1e546466e9b2a1 = $(`<div id="html_9c297507908e8b298a1e546466e9b2a1" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Joseph M Farley</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>AL</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Houston</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6001.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1776.4</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_5206bd889d378fb53e416724a166b7a4.setContent(html_9c297507908e8b298a1e546466e9b2a1);
+            
+        
+
+        circle_marker_1f8c8c44b4b106a792dce0690e55a436.bindPopup(popup_5206bd889d378fb53e416724a166b7a4)
+        ;
+
+        
+    
+    
+            circle_marker_1f8c8c44b4b106a792dce0690e55a436.bindTooltip(
+                `<div>
+                     Joseph M Farley (AL)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_fbefdc7946fa88ff88189f7e15a3847d = L.circleMarker(
+                [33.3881, -112.8617],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 17, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_e422adc2cbaab6d243d0490afadb45f7 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_69a0f38d18fcbdc6f6907d865d9c06e6 = $(`<div id="html_69a0f38d18fcbdc6f6907d865d9c06e6" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Palo Verde</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>AZ</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Maricopa</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6008.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>4209.6</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>3</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_e422adc2cbaab6d243d0490afadb45f7.setContent(html_69a0f38d18fcbdc6f6907d865d9c06e6);
+            
+        
+
+        circle_marker_fbefdc7946fa88ff88189f7e15a3847d.bindPopup(popup_e422adc2cbaab6d243d0490afadb45f7)
+        ;
+
+        
+    
+    
+            circle_marker_fbefdc7946fa88ff88189f7e15a3847d.bindTooltip(
+                `<div>
+                     Palo Verde (AZ)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_14eb755b6bd45869e90aa38c2b7ba09b = L.circleMarker(
+                [38.4344, -76.4417],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_3dd4491642bd5d69e1df646ff09ebc8c = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_f55ba6b48e8f54fbba2f4fec546823a5 = $(`<div id="html_f55ba6b48e8f54fbba2f4fec546823a5" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Calvert Cliffs Nuclear Power Plant</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>MD</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Calvert</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6011.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1850.4</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_3dd4491642bd5d69e1df646ff09ebc8c.setContent(html_f55ba6b48e8f54fbba2f4fec546823a5);
+            
+        
+
+        circle_marker_14eb755b6bd45869e90aa38c2b7ba09b.bindPopup(popup_3dd4491642bd5d69e1df646ff09ebc8c)
+        ;
+
+        
+    
+    
+            circle_marker_14eb755b6bd45869e90aa38c2b7ba09b.bindTooltip(
+                `<div>
+                     Calvert Cliffs Nuclear Power Plant (MD)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_b1a2b321e65b4025061c321e1c0640d8 = L.circleMarker(
+                [33.9597, -78.0114],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_b77fcf60384a13e9c5452fab9d1ad16f = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_e1df9fbe81a2bdd053bedc07d5cd0df2 = $(`<div id="html_e1df9fbe81a2bdd053bedc07d5cd0df2" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Brunswick Nuclear</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>NC</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Brunswick</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6014.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2003.2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_b77fcf60384a13e9c5452fab9d1ad16f.setContent(html_e1df9fbe81a2bdd053bedc07d5cd0df2);
+            
+        
+
+        circle_marker_b1a2b321e65b4025061c321e1c0640d8.bindPopup(popup_b77fcf60384a13e9c5452fab9d1ad16f)
+        ;
+
+        
+    
+    
+            circle_marker_b1a2b321e65b4025061c321e1c0640d8.bindTooltip(
+                `<div>
+                     Brunswick Nuclear (NC)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_4aacca60ca6346ae3e742df28a3e3d9a = L.circleMarker(
+                [35.6334, -78.9556],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 11, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_ef2e47afc20954dc26e7ecc778c09fc6 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_d133e6882f515d8534a464160287ad2f = $(`<div id="html_d133e6882f515d8534a464160287ad2f" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Harris (NC)</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>NC</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Wake</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6015.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>950.9</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_ef2e47afc20954dc26e7ecc778c09fc6.setContent(html_d133e6882f515d8534a464160287ad2f);
+            
+        
+
+        circle_marker_4aacca60ca6346ae3e742df28a3e3d9a.bindPopup(popup_ef2e47afc20954dc26e7ecc778c09fc6)
+        ;
+
+        
+    
+    
+            circle_marker_4aacca60ca6346ae3e742df28a3e3d9a.bindTooltip(
+                `<div>
+                     Harris (NC) (NC)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_58e3c7413fb9da06e90a38937b5576c0 = L.circleMarker(
+                [41.8006, -81.1439],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_176629f91a4b976eea03c4d2d5ae99c6 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_468925c36b20dd34725a1094719158af = $(`<div id="html_468925c36b20dd34725a1094719158af" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Perry</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>OH</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Lake</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6020.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1311.6</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_176629f91a4b976eea03c4d2d5ae99c6.setContent(html_468925c36b20dd34725a1094719158af);
+            
+        
+
+        circle_marker_58e3c7413fb9da06e90a38937b5576c0.bindPopup(popup_176629f91a4b976eea03c4d2d5ae99c6)
+        ;
+
+        
+    
+    
+            circle_marker_58e3c7413fb9da06e90a38937b5576c0.bindTooltip(
+                `<div>
+                     Perry (OH)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_6b43492545204085acca1396be1a1c2c = L.circleMarker(
+                [41.2435, -88.2286],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_08b3b904677ee5de8028ecd022a31d05 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_02394b82889c100fb49383cd66e5b65e = $(`<div id="html_02394b82889c100fb49383cd66e5b65e" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Braidwood Generation Station</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>IL</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Will</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6022.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2449.8</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_08b3b904677ee5de8028ecd022a31d05.setContent(html_02394b82889c100fb49383cd66e5b65e);
+            
+        
+
+        circle_marker_6b43492545204085acca1396be1a1c2c.bindPopup(popup_08b3b904677ee5de8028ecd022a31d05)
+        ;
+
+        
+    
+    
+            circle_marker_6b43492545204085acca1396be1a1c2c.bindTooltip(
+                `<div>
+                     Braidwood Generation Station (IL)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_9e658a2d097c155a594946e90bcde7db = L.circleMarker(
+                [42.0742, -89.2819],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_f4e2f9fa53c8278ea87fa9778866fc0d = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_b0e67ad424f5e62e52055d68c6d6b1b1 = $(`<div id="html_b0e67ad424f5e62e52055d68c6d6b1b1" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Byron Generating Station</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>IL</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Ogle</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6023.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2449.8</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_f4e2f9fa53c8278ea87fa9778866fc0d.setContent(html_b0e67ad424f5e62e52055d68c6d6b1b1);
+            
+        
+
+        circle_marker_9e658a2d097c155a594946e90bcde7db.bindPopup(popup_f4e2f9fa53c8278ea87fa9778866fc0d)
+        ;
+
+        
+    
+    
+            circle_marker_9e658a2d097c155a594946e90bcde7db.bindTooltip(
+                `<div>
+                     Byron Generating Station (IL)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_d829b456838a5b775ceb6d85da7ac564 = L.circleMarker(
+                [41.245498, -88.66907],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_4c16e28c1e244502a15eb51fd32a5e37 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_c15c73a30507b5bc5edc32f1ca324a13 = $(`<div id="html_c15c73a30507b5bc5edc32f1ca324a13" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>LaSalle Generating Station</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>IL</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>LaSalle</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6026.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2340.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_4c16e28c1e244502a15eb51fd32a5e37.setContent(html_c15c73a30507b5bc5edc32f1ca324a13);
+            
+        
+
+        circle_marker_d829b456838a5b775ceb6d85da7ac564.bindPopup(popup_4c16e28c1e244502a15eb51fd32a5e37)
+        ;
+
+        
+    
+    
+            circle_marker_d829b456838a5b775ceb6d85da7ac564.bindTooltip(
+                `<div>
+                     LaSalle Generating Station (IL)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_b244bba013fd8fc5a7f633c00310c5fe = L.circleMarker(
+                [35.0514, -81.0694],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_eb3d9bd4de8e4f5bed02fe07668f59b9 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_d5cb58958918ac17a2dc1af087afb15b = $(`<div id="html_d5cb58958918ac17a2dc1af087afb15b" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Catawba</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>SC</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>York</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6036.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2410.2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_eb3d9bd4de8e4f5bed02fe07668f59b9.setContent(html_d5cb58958918ac17a2dc1af087afb15b);
+            
+        
+
+        circle_marker_b244bba013fd8fc5a7f633c00310c5fe.bindPopup(popup_eb3d9bd4de8e4f5bed02fe07668f59b9)
+        ;
+
+        
+    
+    
+            circle_marker_b244bba013fd8fc5a7f633c00310c5fe.bindTooltip(
+                `<div>
+                     Catawba (SC)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_155e162391e8ce0fc222d3b21f74f209 = L.circleMarker(
+                [35.4331, -80.9486],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_42f5ce0c8d2374c1393dc8cdf446fe6c = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_56a6d3408a958a64abbcaaceaebee000 = $(`<div id="html_56a6d3408a958a64abbcaaceaebee000" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>McGuire</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>NC</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Mecklenburg</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6038.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2440.6</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_42f5ce0c8d2374c1393dc8cdf446fe6c.setContent(html_56a6d3408a958a64abbcaaceaebee000);
+            
+        
+
+        circle_marker_155e162391e8ce0fc222d3b21f74f209.bindPopup(popup_42f5ce0c8d2374c1393dc8cdf446fe6c)
+        ;
+
+        
+    
+    
+            circle_marker_155e162391e8ce0fc222d3b21f74f209.bindTooltip(
+                `<div>
+                     McGuire (NC)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_6f485c14c651a880db7f9ada591f3083 = L.circleMarker(
+                [40.6219, -80.4336],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_d8f3c6f5349d0b1dd0c99d78b57623fd = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_9a1710eb61fe931a90e33058a684b8fd = $(`<div id="html_9a1710eb61fe931a90e33058a684b8fd" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Beaver Valley</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>PA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Beaver</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6040.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1846.8</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_d8f3c6f5349d0b1dd0c99d78b57623fd.setContent(html_9a1710eb61fe931a90e33058a684b8fd);
+            
+        
+
+        circle_marker_6f485c14c651a880db7f9ada591f3083.bindPopup(popup_d8f3c6f5349d0b1dd0c99d78b57623fd)
+        ;
+
+        
+    
+    
+            circle_marker_6f485c14c651a880db7f9ada591f3083.bindTooltip(
+                `<div>
+                     Beaver Valley (PA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_2062a60620579913c77180e17ffc7a9e = L.circleMarker(
+                [27.348611, -80.24639],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_03237cb81d253e5d76d6c15ee653e5f7 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_8a10d65c7c3e8056ccdfc9a7d782bd0a = $(`<div id="html_8a10d65c7c3e8056ccdfc9a7d782bd0a" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>St Lucie</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>FL</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>St Lucie</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6045.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2160.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_03237cb81d253e5d76d6c15ee653e5f7.setContent(html_8a10d65c7c3e8056ccdfc9a7d782bd0a);
+            
+        
+
+        circle_marker_2062a60620579913c77180e17ffc7a9e.bindPopup(popup_03237cb81d253e5d76d6c15ee653e5f7)
+        ;
+
+        
+    
+    
+            circle_marker_2062a60620579913c77180e17ffc7a9e.bindTooltip(
+                `<div>
+                     St Lucie (FL)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_fc515fb6503864d7148e71f63d624f6f = L.circleMarker(
+                [31.9342, -82.3447],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_85fbcd223b809a0fda586d0b7d587e09 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_cc20862956b81d6e42411212eb8c7be2 = $(`<div id="html_cc20862956b81d6e42411212eb8c7be2" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Edwin I Hatch</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>GA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Appling</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6051.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1848.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_85fbcd223b809a0fda586d0b7d587e09.setContent(html_cc20862956b81d6e42411212eb8c7be2);
+            
+        
+
+        circle_marker_fc515fb6503864d7148e71f63d624f6f.bindPopup(popup_85fbcd223b809a0fda586d0b7d587e09)
+        ;
+
+        
+    
+    
+            circle_marker_fc515fb6503864d7148e71f63d624f6f.bindTooltip(
+                `<div>
+                     Edwin I Hatch (GA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_b876df3d205428917ee269b3334bdc80 = L.circleMarker(
+                [32.0081, -91.0478],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_394278825d779bc12ea35492fd863107 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_bd1d2ac873d572484d02bda99367b927 = $(`<div id="html_bd1d2ac873d572484d02bda99367b927" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Grand Gulf</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>MS</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Claiborne</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6072.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1440.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_394278825d779bc12ea35492fd863107.setContent(html_bd1d2ac873d572484d02bda99367b927);
+            
+        
+
+        circle_marker_b876df3d205428917ee269b3334bdc80.bindPopup(popup_394278825d779bc12ea35492fd863107)
+        ;
+
+        
+    
+    
+            circle_marker_b876df3d205428917ee269b3334bdc80.bindTooltip(
+                `<div>
+                     Grand Gulf (MS)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_3dbf33c17968e936bb1ab53cec7d66a8 = L.circleMarker(
+                [35.211536, -120.8555],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_72e631f508a720f498061c41fadfa87d = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_b473109cb2bea825dcaaf15f2ed5f943 = $(`<div id="html_b473109cb2bea825dcaaf15f2ed5f943" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Diablo Canyon</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>CA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>San Luis Obispo</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6099.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2323.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_72e631f508a720f498061c41fadfa87d.setContent(html_b473109cb2bea825dcaaf15f2ed5f943);
+            
+        
+
+        circle_marker_3dbf33c17968e936bb1ab53cec7d66a8.bindPopup(popup_72e631f508a720f498061c41fadfa87d)
+        ;
+
+        
+    
+    
+            circle_marker_3dbf33c17968e936bb1ab53cec7d66a8.bindTooltip(
+                `<div>
+                     Diablo Canyon (CA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_cf3b369fc7a73679fde17312d34a78ff = L.circleMarker(
+                [41.0919, -76.1462],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 15, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_c3b46b10d022560e4d873208ed5f51b6 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_7edcd95c84ffff85ce9b42f6c57d4bec = $(`<div id="html_7edcd95c84ffff85ce9b42f6c57d4bec" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>TalenEnergy Susquehanna</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>PA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Luzerne</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6103.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2532.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_c3b46b10d022560e4d873208ed5f51b6.setContent(html_7edcd95c84ffff85ce9b42f6c57d4bec);
+            
+        
+
+        circle_marker_cf3b369fc7a73679fde17312d34a78ff.bindPopup(popup_c3b46b10d022560e4d873208ed5f51b6)
+        ;
+
+        
+    
+    
+            circle_marker_cf3b369fc7a73679fde17312d34a78ff.bindTooltip(
+                `<div>
+                     TalenEnergy Susquehanna (PA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_2ec6b1559e0f1be927308493fddba839 = L.circleMarker(
+                [40.224303, -75.58744],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_94b0f3506baf63be99bb5b858a799278 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_3a27aef5e2320e95d56f37da2355ed36 = $(`<div id="html_3a27aef5e2320e95d56f37da2355ed36" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Limerick</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>PA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Montgomery</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6105.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2277.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_94b0f3506baf63be99bb5b858a799278.setContent(html_3a27aef5e2320e95d56f37da2355ed36);
+            
+        
+
+        circle_marker_2ec6b1559e0f1be927308493fddba839.bindPopup(popup_94b0f3506baf63be99bb5b858a799278)
+        ;
+
+        
+    
+    
+            circle_marker_2ec6b1559e0f1be927308493fddba839.bindTooltip(
+                `<div>
+                     Limerick (PA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_ba9bba45905ae9dee733e82c5a4fd0d1 = L.circleMarker(
+                [43.52139, -76.40839],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_a6057fe17d12ef273cf6a27da66b6111 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_755e7bcb5ecc4a8727ca37e3c8627cc4 = $(`<div id="html_755e7bcb5ecc4a8727ca37e3c8627cc4" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>James A Fitzpatrick</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>NY</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Oswego</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6110.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>883.3</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_a6057fe17d12ef273cf6a27da66b6111.setContent(html_755e7bcb5ecc4a8727ca37e3c8627cc4);
+            
+        
+
+        circle_marker_ba9bba45905ae9dee733e82c5a4fd0d1.bindPopup(popup_a6057fe17d12ef273cf6a27da66b6111)
+        ;
+
+        
+    
+    
+            circle_marker_ba9bba45905ae9dee733e82c5a4fd0d1.bindTooltip(
+                `<div>
+                     James A Fitzpatrick (NY)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_9e7898bfb421a59c26ec7a4b4599ca7d = L.circleMarker(
+                [42.899167, -70.84889],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_200c936331ed74bdfb62b0e627655cd2 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_ff5dfe5fc4fb454b2f7a80fd1352d5fd = $(`<div id="html_ff5dfe5fc4fb454b2f7a80fd1352d5fd" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Seabrook</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>NH</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Rockingham</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6115.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1242.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_200c936331ed74bdfb62b0e627655cd2.setContent(html_ff5dfe5fc4fb454b2f7a80fd1352d5fd);
+            
+        
+
+        circle_marker_9e7898bfb421a59c26ec7a4b4599ca7d.bindPopup(popup_200c936331ed74bdfb62b0e627655cd2)
+        ;
+
+        
+    
+    
+            circle_marker_9e7898bfb421a59c26ec7a4b4599ca7d.bindTooltip(
+                `<div>
+                     Seabrook (NH)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_e36525a5e49bf3f1ee88d210b6c53d4e = L.circleMarker(
+                [39.4666, -75.5377],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_2fe66bb43b44f284b1639f9686ac0ec7 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_be50913b769579fec4a55aaac99321f9 = $(`<div id="html_be50913b769579fec4a55aaac99321f9" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>PSEG Hope Creek Generating Station</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>NJ</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Salem</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6118.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1290.7</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_2fe66bb43b44f284b1639f9686ac0ec7.setContent(html_be50913b769579fec4a55aaac99321f9);
+            
+        
+
+        circle_marker_e36525a5e49bf3f1ee88d210b6c53d4e.bindPopup(popup_2fe66bb43b44f284b1639f9686ac0ec7)
+        ;
+
+        
+    
+    
+            circle_marker_e36525a5e49bf3f1ee88d210b6c53d4e.bindTooltip(
+                `<div>
+                     PSEG Hope Creek Generating Station (NJ)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_cc32a0124cdc74d78c74d063a3382049 = L.circleMarker(
+                [43.2777, -77.3099],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 9, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_2a4e8bb52da826f5aa7bce7f943a2930 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_7e7f811979d4a3dacf3c17faeb8ea97f = $(`<div id="html_7e7f811979d4a3dacf3c17faeb8ea97f" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>R E Ginna Nuclear Power Plant</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>NY</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Wayne</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6122.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>614.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_2a4e8bb52da826f5aa7bce7f943a2930.setContent(html_7e7f811979d4a3dacf3c17faeb8ea97f);
+            
+        
+
+        circle_marker_cc32a0124cdc74d78c74d063a3382049.bindPopup(popup_2a4e8bb52da826f5aa7bce7f943a2930)
+        ;
+
+        
+    
+    
+            circle_marker_cc32a0124cdc74d78c74d063a3382049.bindTooltip(
+                `<div>
+                     R E Ginna Nuclear Power Plant (NY)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_afcea5d6b18ba0ef93ede112c81d530f = L.circleMarker(
+                [34.2983, -81.3153],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 11, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_77197825e27c4db4884b36d88c9b4681 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_ee07a7441677c55e5da3deffaa1a9c1a = $(`<div id="html_ee07a7441677c55e5da3deffaa1a9c1a" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>V C Summer</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>SC</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Fairfield</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6127.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1029.6</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_77197825e27c4db4884b36d88c9b4681.setContent(html_ee07a7441677c55e5da3deffaa1a9c1a);
+            
+        
+
+        circle_marker_afcea5d6b18ba0ef93ede112c81d530f.bindPopup(popup_77197825e27c4db4884b36d88c9b4681)
+        ;
+
+        
+    
+    
+            circle_marker_afcea5d6b18ba0ef93ede112c81d530f.bindTooltip(
+                `<div>
+                     V C Summer (SC)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_d211123bfb0e36201329b530c0557250 = L.circleMarker(
+                [32.298365, -97.78552],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_ee38f1b0245c1ae8205fe487aa2d8bc9 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_2ebd2b553dc71e169932832c14b5a5c2 = $(`<div id="html_2ebd2b553dc71e169932832c14b5a5c2" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Comanche Peak</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>TX</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Somervell</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6145.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2430.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_ee38f1b0245c1ae8205fe487aa2d8bc9.setContent(html_2ebd2b553dc71e169932832c14b5a5c2);
+            
+        
+
+        circle_marker_d211123bfb0e36201329b530c0557250.bindPopup(popup_ee38f1b0245c1ae8205fe487aa2d8bc9)
+        ;
+
+        
+    
+    
+            circle_marker_d211123bfb0e36201329b530c0557250.bindTooltip(
+                `<div>
+                     Comanche Peak (TX)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_6c84286551c563fe16e541a7d31086b5 = L.circleMarker(
+                [41.5967, -83.0861],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 11, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_a2ca9f3f23d37c91072c30849cdc8b50 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_a63c77d07d0c7fbfe29bb32db7313736 = $(`<div id="html_a63c77d07d0c7fbfe29bb32db7313736" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Davis Besse</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>OH</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Ottawa</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6149.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>925.2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_a2ca9f3f23d37c91072c30849cdc8b50.setContent(html_a63c77d07d0c7fbfe29bb32db7313736);
+            
+        
+
+        circle_marker_6c84286551c563fe16e541a7d31086b5.bindPopup(popup_a2ca9f3f23d37c91072c30849cdc8b50)
+        ;
+
+        
+    
+    
+            circle_marker_6c84286551c563fe16e541a7d31086b5.bindTooltip(
+                `<div>
+                     Davis Besse (OH)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_3873ce01cda85dff03df604bf582b7bc = L.circleMarker(
+                [35.2267, -85.0917],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 14, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_c29699e56eaf8d1cffecb8e51ddfa208 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_56fe0df83c2155730bcad8e8fc2c215d = $(`<div id="html_56fe0df83c2155730bcad8e8fc2c215d" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Sequoyah</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>TN</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Hamilton</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6152.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2441.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_c29699e56eaf8d1cffecb8e51ddfa208.setContent(html_56fe0df83c2155730bcad8e8fc2c215d);
+            
+        
+
+        circle_marker_3873ce01cda85dff03df604bf582b7bc.bindPopup(popup_c29699e56eaf8d1cffecb8e51ddfa208)
+        ;
+
+        
+    
+    
+            circle_marker_3873ce01cda85dff03df604bf582b7bc.bindTooltip(
+                `<div>
+                     Sequoyah (TN)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_7f0a09c1f228ece994d794c4eac2c0e4 = L.circleMarker(
+                [38.758919, -91.77884],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_a86126a90a02c9424fed98c630293a78 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_afe0bb27b19f61843b12dc1df0db6d2b = $(`<div id="html_afe0bb27b19f61843b12dc1df0db6d2b" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Callaway</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>MO</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Callaway</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6153.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1235.8</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_a86126a90a02c9424fed98c630293a78.setContent(html_afe0bb27b19f61843b12dc1df0db6d2b);
+            
+        
+
+        circle_marker_7f0a09c1f228ece994d794c4eac2c0e4.bindPopup(popup_a86126a90a02c9424fed98c630293a78)
+        ;
+
+        
+    
+    
+            circle_marker_7f0a09c1f228ece994d794c4eac2c0e4.bindTooltip(
+                `<div>
+                     Callaway (MO)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_7900283c13e86bea2cab784383483395 = L.circleMarker(
+                [38.06, -77.7897],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_0f263c2dcddf144061155a1c24d8a683 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_69bd246bc4d73275f94bdea6f0e3c8a2 = $(`<div id="html_69bd246bc4d73275f94bdea6f0e3c8a2" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>North Anna</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>VA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Louisa</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6168.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1959.4</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_0f263c2dcddf144061155a1c24d8a683.setContent(html_69bd246bc4d73275f94bdea6f0e3c8a2);
+            
+        
+
+        circle_marker_7900283c13e86bea2cab784383483395.bindPopup(popup_0f263c2dcddf144061155a1c24d8a683)
+        ;
+
+        
+    
+    
+            circle_marker_7900283c13e86bea2cab784383483395.bindTooltip(
+                `<div>
+                     North Anna (VA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_3a00ec771f718ef3baa87950bf456d8b = L.circleMarker(
+                [28.795, -96.0481],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 15, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_d2914e90ca76547b1ccaaa9fee729400 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_d6e505d480dca280a99dcea1bf54e3c6 = $(`<div id="html_d6e505d480dca280a99dcea1bf54e3c6" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>South Texas Project</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>TX</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Matagorda</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6251.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2708.6</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_d2914e90ca76547b1ccaaa9fee729400.setContent(html_d6e505d480dca280a99dcea1bf54e3c6);
+            
+        
+
+        circle_marker_3a00ec771f718ef3baa87950bf456d8b.bindPopup(popup_d2914e90ca76547b1ccaaa9fee729400)
+        ;
+
+        
+    
+    
+            circle_marker_3a00ec771f718ef3baa87950bf456d8b.bindTooltip(
+                `<div>
+                     South Texas Project (TX)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_dfb38c363edebdf6466c21b5f2dae9fd = L.circleMarker(
+                [30.757, -91.3327],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 11, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_abf2f04c4ffb3b189990687ddcf44351 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_fe034421587214980f4b2609f38b8db2 = $(`<div id="html_fe034421587214980f4b2609f38b8db2" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>River Bend</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>LA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>West Feliciana</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>6462.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1035.9</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_abf2f04c4ffb3b189990687ddcf44351.setContent(html_fe034421587214980f4b2609f38b8db2);
+            
+        
+
+        circle_marker_dfb38c363edebdf6466c21b5f2dae9fd.bindPopup(popup_abf2f04c4ffb3b189990687ddcf44351)
+        ;
+
+        
+    
+    
+            circle_marker_dfb38c363edebdf6466c21b5f2dae9fd.bindTooltip(
+                `<div>
+                     River Bend (LA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_caebc853917860f5e3c0af2cced7730f = L.circleMarker(
+                [35.6021, -84.7895],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 15, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_6d3136efcd3f0317b8e3c6503f91e851 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_9891a9ccda9a28bbd7ad7eba1ab0ee8f = $(`<div id="html_9891a9ccda9a28bbd7ad7eba1ab0ee8f" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Watts Bar Nuclear Plant</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>TN</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Rhea</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>7722.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>2539.8</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_6d3136efcd3f0317b8e3c6503f91e851.setContent(html_9891a9ccda9a28bbd7ad7eba1ab0ee8f);
+            
+        
+
+        circle_marker_caebc853917860f5e3c0af2cced7730f.bindPopup(popup_6d3136efcd3f0317b8e3c6503f91e851)
+        ;
+
+        
+    
+    
+            circle_marker_caebc853917860f5e3c0af2cced7730f.bindTooltip(
+                `<div>
+                     Watts Bar Nuclear Plant (TN)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_f7c09202fe4e2fa71ef74d02ab184fac = L.circleMarker(
+                [40.1515, -76.7232],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 11, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_059bd631282a9b18cc585f0a428df377 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_25c6d310db3499cc5ad510249a70ca81 = $(`<div id="html_25c6d310db3499cc5ad510249a70ca81" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Crane Clean Energy Center</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>PA</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Dauphin</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>8011.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>980.8</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OS) Out of service and NOT expected to return to service in next calendar year</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_059bd631282a9b18cc585f0a428df377.setContent(html_25c6d310db3499cc5ad510249a70ca81);
+            
+        
+
+        circle_marker_f7c09202fe4e2fa71ef74d02ab184fac.bindPopup(popup_059bd631282a9b18cc585f0a428df377)
+        ;
+
+        
+    
+    
+            circle_marker_f7c09202fe4e2fa71ef74d02ab184fac.bindTooltip(
+                `<div>
+                     Crane Clean Energy Center (PA)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_67e5e04cb6555f0988b9b8f2635dbe42 = L.circleMarker(
+                [40.3628, -95.6408],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_94fa57823fdb8afd892239bbbae311e8 = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_23f5ba74479d03a6f057eeb3891314e7 = $(`<div id="html_23f5ba74479d03a6f057eeb3891314e7" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Cooper Nuclear Station</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>NE</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Nemaha</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>8036.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>801.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>1</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_94fa57823fdb8afd892239bbbae311e8.setContent(html_23f5ba74479d03a6f057eeb3891314e7);
+            
+        
+
+        circle_marker_67e5e04cb6555f0988b9b8f2635dbe42.bindPopup(popup_94fa57823fdb8afd892239bbbae311e8)
+        ;
+
+        
+    
+    
+            circle_marker_67e5e04cb6555f0988b9b8f2635dbe42.bindTooltip(
+                `<div>
+                     Cooper Nuclear Station (NE)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_761a190dfbb91bc140cd301fc9262600 = L.circleMarker(
+                [35.311, -93.2351],
+                {"bubblingMouseEvents": true, "color": "#15803d", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#22c55e", "fillOpacity": 0.65, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 13, "stroke": true, "weight": 2}
+            ).addTo(feature_group_cd1f4d0a2a4ccf4a7871f81232896d97);
+        
+    
+        var popup_1653a4cb2e00a84fc75e565ff4dc3f9c = L.popup({
+  "maxWidth": 420,
+});
+
+        
+            
+                var html_cbd14b8e8c236cd97dde7cc562d0c17e = $(`<div id="html_cbd14b8e8c236cd97dde7cc562d0c17e" style="inline-size: 100.0%; block-size: 100.0%;"><table style='font-size:13px'><tr><th style='text-align:start;padding-inline-end:10px'>Plant</th><td>Arkansas Nuclear One</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>State</th><td>AR</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>County</th><td>Pope</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>EIA Plant ID</th><td>8055.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Capacity MW</th><td>1845.0</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Generator rows</th><td>2</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Status</th><td>(OP) Operating</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source</th><td>EIA-860M April 2026</td></tr><tr><th style='text-align:start;padding-inline-end:10px'>Source URL</th><td>https://www.eia.gov/electricity/data/eia860m/xls/april_generator2026.xlsx</td></tr></table></div>`)[0];
+                popup_1653a4cb2e00a84fc75e565ff4dc3f9c.setContent(html_cbd14b8e8c236cd97dde7cc562d0c17e);
+            
+        
+
+        circle_marker_761a190dfbb91bc140cd301fc9262600.bindPopup(popup_1653a4cb2e00a84fc75e565ff4dc3f9c)
+        ;
+
+        
+    
+    
+            circle_marker_761a190dfbb91bc140cd301fc9262600.bindTooltip(
+                `<div>
+                     Arkansas Nuclear One (AR)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            feature_group_cd1f4d0a2a4ccf4a7871f81232896d97.addTo(map_0119889eb92fa7a1a71f71c6d90601e2);
+        
+    
+            var tile_layer_f5128369425fc2a6249ab1d185e72387 = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {"attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors", "detect_retina": false, "max_native_zoom": 19, "max_zoom": 19, "min_zoom": 0, "no_wrap": false, "opacity": 1, "subdomains": "abc", "tms": false}
+            );
+            var mini_map_c73446ce29c24a2c0922278557fe7898 = new L.Control.MiniMap(
+                tile_layer_f5128369425fc2a6249ab1d185e72387,
+                {
+  "position": "bottomleft",
+  "width": 150,
+  "height": 150,
+  "collapsedWidth": 25,
+  "collapsedHeight": 25,
+  "zoomLevelOffset": -5,
+  "centerFixed": false,
+  "zoomAnimation": false,
+  "toggleDisplay": true,
+  "autoToggleDisplay": false,
+  "minimized": false,
+}
+            );
+            map_0119889eb92fa7a1a71f71c6d90601e2.addControl(mini_map_c73446ce29c24a2c0922278557fe7898);
+        
+    
+            L.control.fullscreen(
+                {
+  "position": "topright",
+  "title": "Full Screen",
+  "titleCancel": "Exit Full Screen",
+  "forceSeparateButton": false,
+}
+            ).addTo(map_0119889eb92fa7a1a71f71c6d90601e2);
+        
+    
+            var layer_control_c3435e455d0b981e2efa0d68a6f0e9df_layers = {
+                base_layers : {
+                    "cartodbpositron" : tile_layer_493bd9e301d27ad344d5190d055523da,
+                },
+                overlays :  {
+                    "AI / data center projects" : feature_group_7917aa9d686e7589f7a665de3957018c,
+                    "Nuclear power plants (EIA-860M)" : feature_group_cd1f4d0a2a4ccf4a7871f81232896d97,
+                },
+            };
+            let layer_control_c3435e455d0b981e2efa0d68a6f0e9df = L.control.layers(
+                layer_control_c3435e455d0b981e2efa0d68a6f0e9df_layers.base_layers,
+                layer_control_c3435e455d0b981e2efa0d68a6f0e9df_layers.overlays,
+                {
+  "position": "topright",
+  "collapsed": false,
+  "autoZIndex": true,
+}
+            ).addTo(map_0119889eb92fa7a1a71f71c6d90601e2);
+
+        
+</script>
+</html>
