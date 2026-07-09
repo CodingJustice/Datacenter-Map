@@ -1,11 +1,11 @@
 """
-Build an interactive U.S. map of public data-center projects, major data-center
-markets, and operating nuclear power plants.
+Build an interactive U.S. map of publicly tracked data-center projects and
+operating nuclear power plants.
 
 The nuclear layer is read from EIA-860M, the official monthly generator
-inventory. The default data-center layer is a curated public landscape layer:
-large AI-scale projects, planned megacampuses, and major U.S. markets. Pass
---datacenters-csv to replace it with a project-specific facility list.
+inventory. The default data-center layer loads every geocoded U.S. facility
+published in Cleanview's public tracker. Pass --datacenters-csv to replace it
+with a project-specific facility list.
 
 This script intentionally uses only the Python standard library. It emits a
 standalone Leaflet HTML page that can be embedded on a web page or opened
@@ -47,17 +47,24 @@ from zipfile import ZipFile
 # Source pages used by the downloader and by the source links in the map.
 EIA_860M_PAGE = "https://www.eia.gov/electricity/data/eia860m/"
 CLEANVIEW_US_DATACENTERS_URL = "https://cleanview.co/data-centers/us"
+PUBLIC_DC_CATEGORY = "Publicly tracked data-center facility"
+PUBLIC_DC_PRECISION = "Public tracker coordinates"
+PUBLIC_DC_SOURCE = "Cleanview public U.S. data-center tracker"
+PUBLIC_DC_NOTES = (
+    "Individual facility or project from Cleanview's public geocoded "
+    "U.S. data-center inventory."
+)
 
 # High-level tracker numbers shown in the intro and detail panels.
 LANDSCAPE_SUMMARY = {
     "source": "Cleanview public U.S. data-center tracker",
     "source_url": CLEANVIEW_US_DATACENTERS_URL,
-    "as_of": "June 2026",
-    "tracked_data_centers": 2666,
-    "operating_data_centers": 1100,
-    "planned_data_centers": 1526,
-    "operating_power_mw": 51870,
-    "planned_power_mw": 357035,
+    "as_of": "July 2026",
+    "tracked_data_centers": 2849,
+    "operating_data_centers": 1162,
+    "planned_data_centers": 1649,
+    "operating_power_mw": 54100,
+    "planned_power_mw": 367348,
 }
 
 
@@ -625,10 +632,8 @@ def normalize_status_group(status: Any, category: Any = "") -> str:
     """Collapse many public status/category phrases into the map filter groups."""
 
     combined = f"{status} {category}".lower()
-    if "market" in combined or "hub" in combined:
-        return "Market hub"
     if "under construction" in combined or "construction" in combined:
-        return "Under construction"
+        return "Planned"
     if "planned" in combined or "proposed" in combined:
         return "Planned"
     if "operat" in combined or "expanding" in combined:
@@ -739,14 +744,112 @@ def normalize_datacenter_record(record: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
-def load_data_centers(csv_path: Path | None = None) -> list[dict[str, Any]]:
-    """Load either the default data-center layer or a user-supplied CSV layer."""
+def extract_cleanview_markers(page_html: str) -> list[dict[str, Any]]:
+    """Extract the public geocoded facility markers embedded in Cleanview's page."""
+
+    marker_key = r'\"markers\":'
+    start = page_html.find(marker_key)
+    if start < 0:
+        raise RuntimeError("Could not find Cleanview's embedded marker inventory.")
+
+    payload = page_html[start + len(marker_key) :]
+    match = re.match(r"(\[(?:\\.|[^]])*\])", payload)
+    if not match:
+        raise RuntimeError("Could not parse Cleanview's embedded marker inventory.")
+
+    marker_json = match.group(1).replace(r"\"", '"').replace(r"\\", "\\")
+    markers = json.loads(marker_json)
+    if not isinstance(markers, list) or not markers:
+        raise RuntimeError("Cleanview's embedded marker inventory was empty.")
+    return markers
+
+
+def cleanview_marker_to_record(marker: dict[str, Any]) -> dict[str, Any]:
+    """Convert one Cleanview public map marker to the map's stable record shape."""
+
+    project_id = marker.get("id")
+    return {
+        "name": marker.get("name") or f"Data center {project_id}",
+        "developer": "",
+        "status": marker.get("status") or "Unknown",
+        "category": PUBLIC_DC_CATEGORY,
+        "capacity_mw": marker.get("capacityMw"),
+        "capacity_label": format_mw(marker.get("capacityMw")),
+        "landscape_weight": 4,
+        "location": marker.get("detail") or "",
+        "latitude": marker.get("latitude"),
+        "longitude": marker.get("longitude"),
+        "precision": PUBLIC_DC_PRECISION,
+        "source": PUBLIC_DC_SOURCE,
+        "source_url": CLEANVIEW_US_DATACENTERS_URL,
+        "notes": PUBLIC_DC_NOTES,
+    }
+
+
+def load_cleanview_data_centers(
+    cache_dir: Path, refresh: bool = False
+) -> list[dict[str, Any]]:
+    """Download or reuse Cleanview's public geocoded U.S. facility inventory."""
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_path = cache_dir / "cleanview_us_data_centers.html"
+    page_html: str | None = None
+
+    if refresh or not cache_path.exists():
+        try:
+            response = fetch_url(CLEANVIEW_US_DATACENTERS_URL, timeout=90)
+            assert isinstance(response, str)
+            page_html = response
+            cache_path.write_text(page_html, encoding="utf-8")
+        except (HTTPError, URLError, TimeoutError, OSError) as exc:
+            if not cache_path.exists():
+                raise
+            warnings.warn(
+                f"Could not refresh Cleanview ({exc}). Using cached public inventory.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+
+    if page_html is None:
+        page_html = cache_path.read_text(encoding="utf-8")
+
+    return [
+        cleanview_marker_to_record(marker)
+        for marker in extract_cleanview_markers(page_html)
+    ]
+
+
+def load_data_centers(
+    csv_path: Path | None = None,
+    cache_dir: Path | None = None,
+    refresh: bool = False,
+) -> list[dict[str, Any]]:
+    """Load Cleanview's public facilities or a user-supplied CSV layer."""
 
     if csv_path:
         with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
             records = list(csv.DictReader(handle))
     else:
-        records = [dict(item) for item in DEFAULT_DATA_CENTERS]
+        try:
+            records = load_cleanview_data_centers(
+                cache_dir or Path(__file__).with_name("cache"),
+                refresh=refresh,
+            )
+        except (
+            HTTPError,
+            URLError,
+            TimeoutError,
+            OSError,
+            RuntimeError,
+            json.JSONDecodeError,
+        ) as exc:
+            warnings.warn(
+                f"Could not load Cleanview's facility inventory ({exc}). "
+                "Using the curated fallback markers.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            records = [dict(item) for item in DEFAULT_DATA_CENTERS]
 
     required = {"name", "latitude", "longitude"}
     if records:
@@ -829,6 +932,55 @@ def json_for_html(data: Any) -> str:
     return json.dumps(data, ensure_ascii=True, allow_nan=False).replace("</", "<\\/")
 
 
+def compact_data_centers_for_html(
+    records: list[dict[str, Any]],
+) -> list[list[Any]]:
+    """Remove repeated public-tracker strings from the browser payload."""
+
+    compact: list[list[Any]] = []
+    for record in records:
+        capacity = safe_float(record.get("capacity_mw"))
+        is_public_default = (
+            not record.get("developer")
+            and record.get("category") == PUBLIC_DC_CATEGORY
+            and (safe_float(record.get("landscape_weight")) or 0) == 4
+            and record.get("precision") == PUBLIC_DC_PRECISION
+            and record.get("source") == PUBLIC_DC_SOURCE
+            and record.get("source_url") == CLEANVIEW_US_DATACENTERS_URL
+            and record.get("notes") == PUBLIC_DC_NOTES
+            and record.get("capacity_label") == format_mw(capacity)
+        )
+        row: list[Any] = [
+            record.get("name"),
+            record.get("status"),
+            record.get("status_group"),
+            capacity,
+            record.get("location"),
+            safe_float(record.get("latitude")),
+            safe_float(record.get("longitude")),
+            record.get("nearest_nuclear_name"),
+            record.get("nearest_nuclear_state"),
+            safe_float(record.get("nearest_nuclear_distance_mi")),
+            safe_float(record.get("nearest_nuclear_latitude")),
+            safe_float(record.get("nearest_nuclear_longitude")),
+        ]
+        if not is_public_default:
+            row.append(
+                {
+                    "d": record.get("developer", ""),
+                    "g": record.get("category", ""),
+                    "cl": record.get("capacity_label", ""),
+                    "w": safe_float(record.get("landscape_weight")),
+                    "p": record.get("precision", ""),
+                    "s": record.get("source", ""),
+                    "u": record.get("source_url", ""),
+                    "n": record.get("notes", ""),
+                }
+            )
+        compact.append(row)
+    return compact
+
+
 def html_escape(value: Any) -> str:
     """Escape generated values before they are inserted into HTML text."""
 
@@ -854,8 +1006,6 @@ def render_map_html(
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>U.S. Data Centers and Nuclear Power Landscape</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
   <!-- Page-specific styling lives here so the generated HTML is portable. -->
   <style>
     /* Theme variables used by panels, controls, markers, and map overlays. */
@@ -890,7 +1040,7 @@ def render_map_html(
       block-size: 100%;
       min-block-size: 720px;
       inline-size: 100%;
-      background: #101827;
+      background: #d8e0e3;
     }
 
     .leaflet-container {
@@ -921,7 +1071,12 @@ def render_map_html(
 
     /* Top summary panel with title text and live/generated metrics. */
     .intro-panel {
+      position: relative;
       overflow: hidden;
+    }
+
+    body.intro-hidden .intro-panel {
+      display: none;
     }
 
     .intro-band {
@@ -930,6 +1085,43 @@ def render_map_html(
       background:
         linear-gradient(135deg, rgba(0, 166, 255, 0.96), rgba(255, 61, 127, 0.92) 52%, rgba(33, 197, 93, 0.9)),
         #14315a;
+    }
+
+    .icon-button {
+      display: grid;
+      place-items: center;
+      inline-size: 30px;
+      block-size: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.38);
+      border-radius: 999px;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.22);
+      box-shadow: 0 8px 18px rgba(8, 18, 38, 0.18);
+      font: 900 15px/1 Inter, "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    .icon-button:hover {
+      background: rgba(15, 23, 42, 0.34);
+    }
+
+    .intro-hide {
+      position: absolute;
+      inset-block-start: 10px;
+      inset-inline-end: 10px;
+      z-index: 1;
+    }
+
+    .intro-restore {
+      pointer-events: auto;
+      display: none;
+      border-color: rgba(15, 23, 42, 0.16);
+      color: #0f172a;
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    body.intro-hidden .intro-restore {
+      display: grid;
     }
 
     .eyebrow {
@@ -1158,7 +1350,7 @@ def render_map_html(
       color: #111827;
     }
 
-    /* Custom Leaflet marker and cluster visuals. */
+    /* Custom nuclear-marker visuals. Data-center points render on canvas. */
     .map-marker {
       position: relative;
       display: grid;
@@ -1173,15 +1365,6 @@ def render_map_html(
       transform: translate3d(0, 0, 0);
     }
 
-    .map-marker::after {
-      position: absolute;
-      inset: -7px;
-      content: "";
-      border: 1px solid var(--glow);
-      border-radius: inherit;
-      animation: pulse 2.8s ease-out infinite;
-    }
-
     .marker-label {
       position: relative;
       z-index: 1;
@@ -1193,50 +1376,6 @@ def render_map_html(
 
     .nuclear-marker {
       background: radial-gradient(circle at 35% 28%, #eafff1 0 8%, var(--green) 38%, #0e3d27 100%);
-    }
-
-    @keyframes pulse {
-      0% {
-        opacity: 0.8;
-        transform: scale(0.88);
-      }
-      100% {
-        opacity: 0;
-        transform: scale(1.55);
-      }
-    }
-
-    .cluster-wrap {
-      background: transparent;
-      border: 0;
-    }
-
-    .cluster-icon {
-      display: grid;
-      place-items: center;
-      inline-size: var(--size);
-      block-size: var(--size);
-      border: 2px solid rgba(255, 255, 255, 0.9);
-      border-radius: 999px;
-      color: #ffffff;
-      background: radial-gradient(circle at 35% 28%, #ffffff 0 7%, #2dd4bf 28%, #2563eb 62%, #0f172a 100%);
-      box-shadow: 0 0 0 5px rgba(45, 212, 191, 0.2), 0 12px 30px rgba(15, 23, 42, 0.28);
-      text-align: center;
-    }
-
-    .cluster-icon b {
-      display: block;
-      font-size: 15px;
-      line-height: 1;
-    }
-
-    .cluster-icon span {
-      display: block;
-      margin-block-start: 1px;
-      font-size: 8px;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
     }
 
     /* Popup, tooltip, and built-in Leaflet control styling. */
@@ -1346,8 +1485,11 @@ def render_map_html(
 
   <!-- User controls: overview metrics, filters, layer switches, and selected-marker details. -->
   <aside class="ui-shell" aria-label="Map controls">
+    <button id="showIntro" class="icon-button intro-restore" type="button" aria-label="Show INCOMPAS summary" title="Show INCOMPAS summary">i</button>
+
     <!-- Generated summary counts and capacity totals. -->
     <section class="panel intro-panel">
+      <button id="hideIntro" class="icon-button intro-hide" type="button" aria-label="Hide INCOMPAS summary" title="Hide INCOMPAS summary">x</button>
       <div class="intro-band">
         <div class="eyebrow">INCOMPAS infrastructure landscape</div>
         <h1>Data Centers and Nuclear Power</h1>
@@ -1385,20 +1527,15 @@ def render_map_html(
           <span class="swatch"></span>
           <span>Operating</span>
         </label>
-        <label class="chip" style="--chip-color:#ffb000;--chip-glow:rgba(255,176,0,0.2)">
-          <input type="checkbox" value="Under construction" checked>
-          <span class="swatch"></span>
-          <span>Construction</span>
-        </label>
         <label class="chip" style="--chip-color:#ff3d7f;--chip-glow:rgba(255,61,127,0.2)">
           <input type="checkbox" value="Planned" checked>
           <span class="swatch"></span>
           <span>Planned</span>
         </label>
-        <label class="chip" style="--chip-color:#8b5cf6;--chip-glow:rgba(139,92,246,0.2)">
-          <input type="checkbox" value="Market hub" checked>
+        <label class="chip" style="--chip-color:#14b8a6;--chip-glow:rgba(20,184,166,0.2)">
+          <input type="checkbox" value="Other" checked>
           <span class="swatch"></span>
-          <span>Market hubs</span>
+          <span>Other</span>
         </label>
       </div>
 
@@ -1407,8 +1544,8 @@ def render_map_html(
           <input id="showNuclear" type="checkbox" checked>
           Nuclear
         </label>
-        <label class="layer-toggle active">
-          <input id="showConnectors" type="checkbox" checked>
+        <label class="layer-toggle">
+          <input id="showConnectors" type="checkbox">
           Proximity
         </label>
         <label class="layer-toggle" id="heatToggleLabel">
@@ -1431,7 +1568,7 @@ def render_map_html(
         <span class="pill">Landscape</span>
       </div>
       <div class="detail-body">
-        Public data-center markers are not a facility census. Market hubs represent metro clusters; project markers use the most precise public location available.
+        Every geocoded facility currently published in the public tracker is plotted. The tracker total can be higher when a known project has no public coordinates.
       </div>
       <dl class="detail-list">
         <dt>Tracked</dt><dd>__TRACKED_DC_TOTAL__ U.S. data-center projects</dd>
@@ -1443,72 +1580,169 @@ def render_map_html(
 
   <!-- External map libraries: Leaflet, marker clustering, and heatmap support. -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
   <!-- Map behavior, filters, popups, and layer toggles. -->
   <script>
     // These arrays are injected by `script.py` when the HTML is generated.
-    // To change the default data, edit DEFAULT_DATA_CENTERS above or pass
-    // `--datacenters-csv` when running the generator.
-    const dataCenters = __DATA_CENTERS_JSON__;
+    // To replace the public tracker data, pass `--datacenters-csv`.
+    const dataCenters = __DATA_CENTERS_JSON__.map((row) => {
+      const extra = row[12];
+      const publicDefaults = !extra;
+      return {
+        name: row[0],
+        status: row[1],
+        status_group: row[2],
+        capacity_mw: row[3],
+        location: row[4],
+        latitude: row[5],
+        longitude: row[6],
+        nearest_nuclear_name: row[7],
+        nearest_nuclear_state: row[8],
+        nearest_nuclear_distance_mi: row[9],
+        nearest_nuclear_latitude: row[10],
+        nearest_nuclear_longitude: row[11],
+        developer: publicDefaults ? "" : extra.d,
+        category: publicDefaults ? "Publicly tracked data-center facility" : extra.g,
+        capacity_label: publicDefaults ? "" : extra.cl,
+        landscape_weight: publicDefaults ? 4 : extra.w,
+        precision: publicDefaults ? "Public tracker coordinates" : extra.p,
+        source: publicDefaults ? "Cleanview public U.S. data-center tracker" : extra.s,
+        source_url: publicDefaults ? "https://cleanview.co/data-centers/us" : extra.u,
+        notes: publicDefaults
+          ? "Individual facility or project from Cleanview's public geocoded U.S. data-center inventory."
+          : extra.n
+      };
+    });
     const nuclearPlants = __NUCLEAR_PLANTS_JSON__;
     const generatedAt = "__GENERATED_AT__";
+    const hideIntro = document.getElementById("hideIntro");
+    const showIntro = document.getElementById("showIntro");
 
     // Marker colors, glow colors, and short labels used by data-center status.
     const statusStyles = {
       "Operating": { color: "#00a6ff", glow: "rgba(0, 166, 255, 0.26)", tag: "OP" },
-      "Under construction": { color: "#ffb000", glow: "rgba(255, 176, 0, 0.28)", tag: "UC" },
       "Planned": { color: "#ff3d7f", glow: "rgba(255, 61, 127, 0.26)", tag: "PL" },
-      "Market hub": { color: "#8b5cf6", glow: "rgba(139, 92, 246, 0.27)", tag: "HUB" },
       "Other": { color: "#14b8a6", glow: "rgba(20, 184, 166, 0.22)", tag: "DC" }
     };
 
-    // Create the Leaflet map centered on the continental U.S.
+    // Keep every pan and zoom constrained to the continental U.S.
+    const US_BOUNDS = L.latLngBounds(
+      [24.396308, -125.0],
+      [49.384358, -66.93457]
+    );
+
+    // Create the map with a hard boundary and no wrapped copies of the world.
     const map = L.map("map", {
+      maxBounds: US_BOUNDS,
+      maxBoundsViscosity: 1.0,
+      minZoom: 4,
+      worldCopyJump: false,
       zoomControl: false,
       preferCanvas: true,
-      scrollWheelZoom: true
-    }).setView([39.5, -98.35], 4);
+      scrollWheelZoom: true,
+      zoomAnimation: false,
+      fadeAnimation: false,
+      markerZoomAnimation: false,
+      wheelDebounceTime: 25,
+      wheelPxPerZoomLevel: 40
+    });
+    map.fitBounds(US_BOUNDS, { padding: [20, 20] });
 
     // Background map options shown in the layer picker.
     const baseLayers = {
       "Color": L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
         maxZoom: 19,
+        noWrap: true,
+        updateWhenZooming: false,
+        updateWhenIdle: true,
+        keepBuffer: 2,
         attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
       }),
       "Light": L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
         maxZoom: 19,
+        noWrap: true,
+        updateWhenZooming: false,
+        updateWhenIdle: true,
+        keepBuffer: 2,
         attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
       }),
       "Dark": L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
         maxZoom: 19,
+        noWrap: true,
+        updateWhenZooming: false,
+        updateWhenIdle: true,
+        keepBuffer: 2,
         attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
       }),
       "Satellite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
         maxZoom: 19,
+        noWrap: true,
+        updateWhenZooming: false,
+        updateWhenIdle: true,
+        keepBuffer: 2,
         attribution: "Tiles &copy; Esri"
       })
     };
-    baseLayers.Color.addTo(map);
+    baseLayers.Satellite.addTo(map);
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
     L.control.layers(baseLayers, null, { position: "bottomright", collapsed: true }).addTo(map);
 
-    // Cluster data-center markers so dense markets stay readable at low zoom.
-    const dcCluster = L.markerClusterGroup({
-      showCoverageOnHover: false,
-      spiderfyOnMaxZoom: true,
-      maxClusterRadius: 44,
-      iconCreateFunction: (cluster) => {
-        const count = cluster.getChildCount();
-        const size = count > 20 ? 58 : count > 9 ? 50 : 44;
-        return L.divIcon({
-          html: `<div class="cluster-icon" style="--size:${size}px"><b>${count}</b><span>sites</span></div>`,
-          className: "cluster-wrap",
-          iconSize: L.point(size, size)
-        });
+    // Draw nuclear-style data-center symbols on one fast, interactive canvas.
+    const BrandedCanvas = L.Canvas.extend({
+      _updateCircle(layer) {
+        if (!layer.options.brandColor) {
+          return L.Canvas.prototype._updateCircle.call(this, layer);
+        }
+        if (!this._drawing || layer._empty()) return;
+
+        const point = layer._point;
+        const radius = Math.max(Math.round(layer._radius), 1);
+        const context = this._ctx;
+        context.save();
+
+        context.beginPath();
+        context.arc(point.x, point.y, radius + 2.5, 0, Math.PI * 2);
+        context.fillStyle = layer.options.brandGlow;
+        context.fill();
+
+        context.beginPath();
+        context.arc(point.x, point.y, radius, 0, Math.PI * 2);
+        context.fillStyle = "#172033";
+        context.fill();
+
+        context.beginPath();
+        context.arc(point.x, point.y, Math.max(radius - 1, 1), 0, Math.PI * 2);
+        context.fillStyle = layer.options.brandColor;
+        context.fill();
+        context.lineWidth = 1.25;
+        context.strokeStyle = "rgba(255,255,255,0.95)";
+        context.stroke();
+
+        context.beginPath();
+        context.arc(
+          point.x - radius * 0.3,
+          point.y - radius * 0.32,
+          Math.max(radius * 0.17, 0.9),
+          0,
+          Math.PI * 2
+        );
+        context.fillStyle = "rgba(255,255,255,0.86)";
+        context.fill();
+
+        if (radius >= 6) {
+          context.fillStyle = "#ffffff";
+          context.font = `800 ${Math.max(6, Math.floor(radius * 0.78))}px "Segoe UI", Arial, sans-serif`;
+          context.textAlign = "center";
+          context.textBaseline = "middle";
+          context.fillText(layer.options.brandTag, point.x, point.y + 0.5);
+        }
+        context.restore();
       }
     });
+    const dcRenderer = new BrandedCanvas({ padding: 0.45, tolerance: 7 });
+    const dcLayer = L.layerGroup();
+    const dcPopupLayer = L.popup({ maxWidth: 360 });
 
     // Overlay groups are toggled by the checkboxes in the control panel.
     const nuclearLayer = L.layerGroup();
@@ -1526,9 +1760,8 @@ def render_map_html(
       }
     });
 
-    map.addLayer(dcCluster);
+    map.addLayer(dcLayer);
     map.addLayer(nuclearLayer);
-    map.addLayer(connectorLayer);
 
     // Cache references to controls that drive filtering and layer visibility.
     const searchInput = document.getElementById("siteSearch");
@@ -1575,37 +1808,20 @@ def render_map_html(
       return `${numberFormat(number)} MW`;
     }
 
-    // Size data-center markers by capacity, falling back to landscape weight.
-    function markerSize(site, minimum = 24, maximum = 54) {
+    // Keep canvas points easy to target while allowing capacity to affect size.
+    function dcPointRadius(site) {
       const capacity = Number(site.capacity_mw);
       if (Number.isFinite(capacity) && capacity > 0) {
-        return Math.max(minimum, Math.min(maximum, Math.round(minimum + Math.sqrt(capacity) * 0.36)));
+        return Math.max(4.2, Math.min(10, 4.2 + Math.sqrt(capacity) * 0.08));
       }
-      const weight = Number(site.landscape_weight);
-      if (Number.isFinite(weight) && weight > 0) {
-        return Math.max(minimum, Math.min(maximum, Math.round(minimum + weight * 0.82)));
-      }
-      return minimum;
+      return 4.2;
     }
 
     // Size nuclear markers by plant nameplate capacity.
     function nuclearSize(plant) {
       const capacity = Number(plant.capacity_mw);
-      if (!Number.isFinite(capacity) || capacity <= 0) return 24;
-      return Math.max(24, Math.min(46, Math.round(23 + Math.sqrt(capacity) * 0.28)));
-    }
-
-    // Create a colored data-center marker icon for Leaflet.
-    function dcIcon(site) {
-      const style = statusStyles[site.status_group] || statusStyles.Other;
-      const size = markerSize(site);
-      return L.divIcon({
-        className: "",
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-        popupAnchor: [0, -size / 2],
-        html: `<div class="map-marker" style="--size:${size}px;--marker:${style.color};--glow:${style.glow}"><span class="marker-label">${style.tag}</span></div>`
-      });
+      if (!Number.isFinite(capacity) || capacity <= 0) return 22;
+      return Math.max(22, Math.min(36, Math.round(20 + Math.sqrt(capacity) * 0.18)));
     }
 
     // Create a green nuclear plant marker icon for Leaflet.
@@ -1732,10 +1948,9 @@ def render_map_html(
       );
     }
 
-    // Search across the fields users are likely to type: name, company, place, and notes.
-    function siteMatchesSearch(site, query) {
-      if (!query) return true;
-      const haystack = [
+    // Build searchable text once instead of joining fields on every keystroke.
+    function siteSearchText(site) {
+      return [
         site.name,
         site.developer,
         site.status,
@@ -1744,27 +1959,50 @@ def render_map_html(
         site.nearest_nuclear_name,
         site.notes
       ].join(" ").toLowerCase();
-      return haystack.includes(query);
     }
 
-    // Rebuild the data-center markers and proximity lines from the current filters.
+    // Build lightweight canvas points once and create popup HTML only on click.
+    const dataCenterMarkerRecords = dataCenters.map((site) => {
+      const style = statusStyles[site.status_group] || statusStyles.Other;
+      const marker = L.circleMarker([site.latitude, site.longitude], {
+        renderer: dcRenderer,
+        radius: dcPointRadius(site),
+        brandColor: style.color,
+        brandGlow: style.glow,
+        brandTag: style.tag,
+        color: style.color,
+        weight: 1.25,
+        fillColor: style.color,
+        fillOpacity: 1,
+        bubblingMouseEvents: false
+      }).bindTooltip(`${site.name} - ${site.status_group}`, { sticky: true });
+      marker.on("click", () => {
+        dcPopupLayer
+          .setLatLng(marker.getLatLng())
+          .setContent(dcPopup(site))
+          .openOn(map);
+        updateDetail(site, "data-center");
+      });
+      return { site, marker, searchText: siteSearchText(site) };
+    });
+
+    let previousSearchQuery = "";
+
+    // Reuse canvas points and rebuild only the optional proximity lines.
     function refreshDataCenterLayer() {
       const statuses = activeStatuses();
       const query = searchInput.value.trim().toLowerCase();
-      dcCluster.clearLayers();
+      dcLayer.clearLayers();
       connectorLayer.clearLayers();
 
-      let shown = 0;
-      for (const site of dataCenters) {
-        if (!statuses.has(site.status_group) || !siteMatchesSearch(site, query)) {
+      const visibleMarkers = [];
+      const resultBounds = L.latLngBounds([]);
+      for (const { site, marker, searchText } of dataCenterMarkerRecords) {
+        if (!statuses.has(site.status_group) || (query && !searchText.includes(query))) {
           continue;
         }
-        shown += 1;
-        const marker = L.marker([site.latitude, site.longitude], { icon: dcIcon(site), title: site.name })
-          .bindPopup(dcPopup(site), { maxWidth: 360 })
-          .bindTooltip(`${site.name} - ${site.status_group}`);
-        marker.on("click", () => updateDetail(site, "data-center"));
-        dcCluster.addLayer(marker);
+        visibleMarkers.push(marker);
+        if (query) resultBounds.extend(marker.getLatLng());
 
         if (showConnectors.checked && site.nearest_nuclear_latitude && site.nearest_nuclear_longitude) {
           const style = statusStyles[site.status_group] || statusStyles.Other;
@@ -1784,7 +2022,15 @@ def render_map_html(
           connectorLayer.addLayer(line);
         }
       }
-      shownCount.textContent = shown.toLocaleString();
+      visibleMarkers.forEach((marker) => dcLayer.addLayer(marker));
+      shownCount.textContent = visibleMarkers.length.toLocaleString();
+
+      if (query && visibleMarkers.length > 0 && visibleMarkers.length <= 120) {
+        map.fitBounds(resultBounds.pad(0.18), { maxZoom: 9 });
+      } else if (!query && previousSearchQuery) {
+        fitToUS();
+      }
+      previousSearchQuery = query;
     }
 
     // Build all nuclear plant markers once; visibility is toggled separately.
@@ -1825,33 +2071,36 @@ def render_map_html(
       showConnectors.closest(".layer-toggle").classList.toggle("active", showConnectors.checked);
     }
 
-    // Zoom the initial view to include every marker.
-    function fitToData() {
-      const bounds = L.latLngBounds([]);
-      dataCenters.forEach((site) => bounds.extend([site.latitude, site.longitude]));
-      nuclearPlants.forEach((plant) => bounds.extend([plant.latitude, plant.longitude]));
-      if (bounds.isValid()) {
-        map.fitBounds(bounds.pad(0.08), { maxZoom: 5 });
-      }
+    // Use one predictable national view on every load.
+    function fitToUS() {
+      map.fitBounds(US_BOUNDS, { padding: [20, 20], maxZoom: 5 });
+      map.setMaxBounds(US_BOUNDS);
     }
 
     // Initial render: build layers, apply default toggles, and frame the data.
     buildNuclearLayer();
     refreshDataCenterLayer();
     syncLayerToggles();
-    fitToData();
+    fitToUS();
 
-    // User interactions: search and filter changes rebuild only what needs updating.
-    searchInput.addEventListener("input", refreshDataCenterLayer);
+    // Debounce search so rapid typing does not repeatedly process thousands of sites.
+    let searchTimer;
+    searchInput.addEventListener("input", () => {
+      window.clearTimeout(searchTimer);
+      searchTimer = window.setTimeout(refreshDataCenterLayer, 90);
+    });
     document.querySelectorAll("#statusFilters input").forEach((input) => {
       input.addEventListener("change", refreshDataCenterLayer);
     });
-    [showNuclear, showConnectors, showHeat].forEach((input) => {
-      input.addEventListener("change", () => {
-        refreshDataCenterLayer();
-        syncLayerToggles();
-      });
+    showConnectors.addEventListener("change", () => {
+      refreshDataCenterLayer();
+      syncLayerToggles();
     });
+    [showNuclear, showHeat].forEach((input) => {
+      input.addEventListener("change", syncLayerToggles);
+    });
+    hideIntro.addEventListener("click", () => document.body.classList.add("intro-hidden"));
+    showIntro.addEventListener("click", () => document.body.classList.remove("intro-hidden"));
 
     // Show when this static page was generated.
     map.attributionControl.addAttribution(`Generated ${escapeHtml(generatedAt)}`);
@@ -1861,7 +2110,9 @@ def render_map_html(
 """
 
     replacements = {
-        "__DATA_CENTERS_JSON__": json_for_html(data_centers),
+        "__DATA_CENTERS_JSON__": json_for_html(
+            compact_data_centers_for_html(data_centers)
+        ),
         "__NUCLEAR_PLANTS_JSON__": json_for_html(nuclear_plants),
         "__GENERATED_AT__": html_escape(generated_at),
         "__DC_MARKER_COUNT__": fmt_number(len(data_centers)),
@@ -1969,7 +2220,7 @@ def parse_args() -> argparse.Namespace:
         "--cache-dir",
         type=Path,
         default=Path(__file__).with_name("cache"),
-        help="Directory for cached EIA workbook downloads.",
+        help="Directory for cached EIA and Cleanview downloads.",
     )
     parser.add_argument(
         "--datacenters-csv",
@@ -1985,7 +2236,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--refresh",
         action="store_true",
-        help="Download the latest EIA workbook even if a cached workbook exists.",
+        help="Refresh the latest EIA workbook and Cleanview facility inventory.",
     )
     parser.add_argument(
         "--no-supporting-csv",
@@ -2001,7 +2252,11 @@ def main() -> int:
     args = parse_args()
     eia_workbook = download_eia_workbook(args.cache_dir, refresh=args.refresh)
     nuclear_plants = load_nuclear_plants(eia_workbook.path)
-    data_centers = load_data_centers(args.datacenters_csv)
+    data_centers = load_data_centers(
+        args.datacenters_csv,
+        cache_dir=args.cache_dir,
+        refresh=args.refresh,
+    )
     enrich_data_center_proximity(data_centers, nuclear_plants)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -2014,11 +2269,8 @@ def main() -> int:
 
     print(f"Map written to: {args.output.resolve()}")
     print(f"Nuclear plants: {len(nuclear_plants)} from EIA-860M {eia_workbook.label}")
-    print(f"Data-center / market markers: {len(data_centers)}")
-    print(
-        "Note: default data-center layer is a curated public landscape layer, "
-        "not a complete facility census."
-    )
+    print(f"Geocoded data-center facility markers: {len(data_centers)}")
+    print("Note: facilities without public coordinates cannot be plotted.")
     return 0
 
 
