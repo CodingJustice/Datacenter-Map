@@ -3,497 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>U.S. Data Centers and Nuclear Power Landscape</title>
+  <title>U.S. Data Centers, Power, Nuclear, and Water Landscape</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
+  <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-  <!-- Page-specific styling lives here so this file can be opened directly in a browser. -->
-  <style>
-    /* Theme variables used by panels, controls, markers, and map overlays. */
-    :root {
-      --ink: #0c1222;
-      --muted: #5e6a80;
-      --panel: rgba(255, 255, 255, 0.94);
-      --panel-strong: rgba(255, 255, 255, 0.98);
-      --line: rgba(15, 23, 42, 0.14);
-      --blue: #00a6ff;
-      --amber: #ffb000;
-      --magenta: #ff3d7f;
-      --violet: #8b5cf6;
-      --green: #21c55d;
-      --teal: #00d4b8;
-      --shadow: 0 18px 44px rgba(8, 18, 38, 0.22);
-    }
-
-    /* Make the browser viewport and the Leaflet map fill the page. */
-    html,
-    body {
-      block-size: 100%;
-      margin: 0;
-      background: #08111f;
-      color: var(--ink);
-      font-family: Inter, "Segoe UI", Arial, sans-serif;
-      letter-spacing: 0;
-    }
-
-    /* Leaflet attaches its interactive map to this element. */
-    #map {
-      block-size: 100%;
-      min-block-size: 720px;
-      inline-size: 100%;
-      background: #101827;
-    }
-
-    .leaflet-container {
-      font-family: Inter, "Segoe UI", Arial, sans-serif;
-    }
-
-    /* Floating left-side UI that stays clickable above the map. */
-    .ui-shell {
-      position: fixed;
-      inset-block-start: 18px;
-      inset-inline-start: 18px;
-      z-index: 900;
-      inline-size: min(390px, calc(100vw - 36px));
-      display: grid;
-      gap: 10px;
-      pointer-events: none;
-    }
-
-    /* Shared panel treatment for the intro, controls, and detail card. */
-    .panel {
-      pointer-events: auto;
-      background: var(--panel);
-      border: 1px solid rgba(255, 255, 255, 0.78);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(16px);
-    }
-
-    /* Top summary panel with title text and generated metrics. */
-    .intro-panel {
-      overflow: hidden;
-    }
-
-    .intro-band {
-      padding: 14px 16px 12px;
-      color: #ffffff;
-      background:
-        linear-gradient(135deg, rgba(0, 166, 255, 0.96), rgba(255, 61, 127, 0.92) 52%, rgba(33, 197, 93, 0.9)),
-        #14315a;
-    }
-
-    .eyebrow {
-      margin-block-end: 5px;
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      opacity: 0.9;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 24px;
-      line-height: 1.06;
-      letter-spacing: 0;
-    }
-
-    .summary {
-      margin: 8px 0 0;
-      max-inline-size: 35rem;
-      color: rgba(255, 255, 255, 0.91);
-      font-size: 13px;
-      line-height: 1.35;
-    }
-
-    .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 1px;
-      background: var(--line);
-      border-block-start: 1px solid var(--line);
-    }
-
-    .metric {
-      min-inline-size: 0;
-      padding: 10px 12px;
-      background: var(--panel-strong);
-    }
-
-    .metric strong {
-      display: block;
-      color: #0f172a;
-      font-size: 18px;
-      line-height: 1.05;
-      white-space: nowrap;
-    }
-
-    .metric span {
-      display: block;
-      margin-block-start: 3px;
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 700;
-      line-height: 1.15;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    /* Search box, status filters, layer toggles, and source note. */
-    .control-panel {
-      padding: 12px;
-      display: grid;
-      gap: 10px;
-    }
-
-    .search-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .search-row input {
-      min-inline-size: 0;
-      border: 1px solid rgba(15, 23, 42, 0.16);
-      border-radius: 8px;
-      padding: 10px 11px;
-      color: var(--ink);
-      background: #ffffff;
-      font: inherit;
-      font-size: 13px;
-      outline: none;
-    }
-
-    .search-row input:focus {
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(0, 166, 255, 0.16);
-    }
-
-    .mini-count {
-      min-inline-size: 68px;
-      border-radius: 8px;
-      padding: 9px 10px;
-      color: #ffffff;
-      text-align: center;
-      font-size: 12px;
-      font-weight: 800;
-      background: #111827;
-    }
-
-    .chip-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 7px;
-    }
-
-    .chip,
-    .layer-toggle {
-      display: flex;
-      min-inline-size: 0;
-      align-items: center;
-      gap: 7px;
-      border: 1px solid rgba(15, 23, 42, 0.13);
-      border-radius: 8px;
-      padding: 8px 9px;
-      background: rgba(255, 255, 255, 0.82);
-      color: #172033;
-      font-size: 12px;
-      font-weight: 750;
-      line-height: 1.15;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .chip input,
-    .layer-toggle input {
-      accent-color: #0ea5e9;
-      inline-size: 14px;
-      block-size: 14px;
-      flex: 0 0 auto;
-    }
-
-    .swatch {
-      inline-size: 11px;
-      block-size: 11px;
-      flex: 0 0 auto;
-      border-radius: 999px;
-      background: var(--chip-color);
-      box-shadow: 0 0 0 3px var(--chip-glow);
-    }
-
-    .layer-row {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 7px;
-    }
-
-    .layer-toggle {
-      justify-content: center;
-      padding: 8px;
-    }
-
-    .layer-toggle.active,
-    .chip:has(input:checked) {
-      border-color: rgba(14, 165, 233, 0.42);
-      background: linear-gradient(180deg, #ffffff, #eef9ff);
-    }
-
-    .source-line {
-      color: #5e6a80;
-      font-size: 11px;
-      line-height: 1.35;
-    }
-
-    .source-line a {
-      color: #0369a1;
-      font-weight: 750;
-      text-decoration: none;
-    }
-
-    /* Detail panel that updates when a marker is clicked. */
-    .detail-panel {
-      display: grid;
-      gap: 8px;
-      padding: 12px;
-    }
-
-    .detail-title {
-      display: flex;
-      align-items: start;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .detail-title h2 {
-      margin: 0;
-      font-size: 15px;
-      line-height: 1.18;
-    }
-
-    .pill {
-      flex: 0 0 auto;
-      border-radius: 999px;
-      padding: 4px 8px;
-      color: #ffffff;
-      background: #0f172a;
-      font-size: 10px;
-      font-weight: 850;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .detail-body {
-      color: #344054;
-      font-size: 12px;
-      line-height: 1.45;
-    }
-
-    .detail-list {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 5px 9px;
-      margin: 0;
-      font-size: 12px;
-    }
-
-    .detail-list dt {
-      color: #64748b;
-      font-weight: 800;
-    }
-
-    .detail-list dd {
-      min-inline-size: 0;
-      margin: 0;
-      color: #111827;
-    }
-
-    /* Custom Leaflet marker and cluster visuals. */
-    .map-marker {
-      position: relative;
-      display: grid;
-      place-items: center;
-      inline-size: var(--size);
-      block-size: var(--size);
-      border: 2px solid rgba(255, 255, 255, 0.92);
-      border-radius: 999px;
-      color: #ffffff;
-      background: radial-gradient(circle at 35% 28%, #ffffff 0 7%, var(--marker) 35%, #172033 100%);
-      box-shadow: 0 0 0 4px var(--glow), 0 9px 24px rgba(4, 12, 26, 0.28), 0 0 26px var(--glow);
-      transform: translate3d(0, 0, 0);
-    }
-
-    .map-marker::after {
-      position: absolute;
-      inset: -7px;
-      content: "";
-      border: 1px solid var(--glow);
-      border-radius: inherit;
-      animation: pulse 2.8s ease-out infinite;
-    }
-
-    .marker-label {
-      position: relative;
-      z-index: 1;
-      font-size: 9px;
-      font-weight: 900;
-      line-height: 1;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-    }
-
-    .nuclear-marker {
-      background: radial-gradient(circle at 35% 28%, #eafff1 0 8%, var(--green) 38%, #0e3d27 100%);
-    }
-
-    @keyframes pulse {
-      0% {
-        opacity: 0.8;
-        transform: scale(0.88);
-      }
-      100% {
-        opacity: 0;
-        transform: scale(1.55);
-      }
-    }
-
-    .cluster-wrap {
-      background: transparent;
-      border: 0;
-    }
-
-    .cluster-icon {
-      display: grid;
-      place-items: center;
-      inline-size: var(--size);
-      block-size: var(--size);
-      border: 2px solid rgba(255, 255, 255, 0.9);
-      border-radius: 999px;
-      color: #ffffff;
-      background: radial-gradient(circle at 35% 28%, #ffffff 0 7%, #2dd4bf 28%, #2563eb 62%, #0f172a 100%);
-      box-shadow: 0 0 0 5px rgba(45, 212, 191, 0.2), 0 12px 30px rgba(15, 23, 42, 0.28);
-      text-align: center;
-    }
-
-    .cluster-icon b {
-      display: block;
-      font-size: 15px;
-      line-height: 1;
-    }
-
-    .cluster-icon span {
-      display: block;
-      margin-block-start: 1px;
-      font-size: 8px;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    /* Popup, tooltip, and built-in Leaflet control styling. */
-    .leaflet-popup-content-wrapper {
-      border-radius: 8px;
-      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.26);
-    }
-
-    .leaflet-popup-content {
-      inline-size: 310px !important;
-      margin: 14px;
-      color: #172033;
-    }
-
-    .popup-title {
-      margin: 0 0 8px;
-      font-size: 16px;
-      line-height: 1.16;
-    }
-
-    .popup-kicker {
-      margin-block-end: 5px;
-      color: #64748b;
-      font-size: 10px;
-      font-weight: 850;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-
-    .popup-table {
-      inline-size: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-
-    .popup-table th,
-    .popup-table td {
-      padding: 5px 0;
-      border-block-start: 1px solid rgba(15, 23, 42, 0.08);
-      vertical-align: start;
-    }
-
-    .popup-table th {
-      inline-size: 34%;
-      padding-inline-end: 10px;
-      color: #64748b;
-      font-weight: 850;
-      text-align: start;
-    }
-
-    .popup-table a {
-      color: #0369a1;
-      font-weight: 800;
-      text-decoration: none;
-    }
-
-    .leaflet-tooltip {
-      border: 0;
-      border-radius: 7px;
-      color: #ffffff;
-      background: rgba(15, 23, 42, 0.9);
-      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.2);
-      font-weight: 750;
-    }
-
-    .leaflet-control-zoom,
-    .leaflet-control-layers {
-      border: 0 !important;
-      box-shadow: var(--shadow) !important;
-    }
-
-    .leaflet-control-attribution {
-      color: #334155;
-      background: rgba(255, 255, 255, 0.84) !important;
-      font-size: 10px;
-    }
-
-    /* Compact layout adjustments for narrow screens. */
-    @media (max-width: 780px) {
-      #map {
-        min-block-size: 780px;
-      }
-
-      .ui-shell {
-        inset-block-start: 10px;
-        inset-inline-start: 10px;
-        inline-size: calc(100vw - 20px);
-      }
-
-      h1 {
-        font-size: 21px;
-      }
-
-      .metric-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .detail-panel {
-        display: none;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <!-- Leaflet mounts the map here; the controls below float on top of it. -->
-  <div id="map" role="application" aria-label="U.S. data-center and nuclear power landscape map"></div>
+  <div id="map" role="application" aria-label="U.S. data-center, power, nuclear, and water landscape map"></div>
 
   <!-- User controls: overview metrics, filters, layer switches, and selected-marker details. -->
   <aside class="ui-shell" aria-label="Map controls">
@@ -501,24 +24,24 @@
     <section class="panel intro-panel">
       <div class="intro-band">
         <div class="eyebrow">INCOMPAS infrastructure landscape</div>
-        <h1>Data Centers and Nuclear Power</h1>
+        <h1>Data Centers, Power, and Water</h1>
         <p class="summary">
-          19 public project and market markers, 56 operating nuclear plant markers,
-          and nearest-plant distance lines for power-landscape context.
+          422 public data-center facility records, 63 nuclear operating or pipeline
+          records, 15,975 power-plant records, and 41 named water-source references.
         </p>
       </div>
       <div class="metric-grid">
         <div class="metric">
-          <strong>31.1 GW</strong>
-          <span>shown public data-center power</span>
+          <strong>171.4 GW</strong>
+          <span>reported data-center capacity</span>
         </div>
         <div class="metric">
-          <strong>103.7 GW</strong>
-          <span>shown nuclear nameplate</span>
+          <strong>112.4 GW</strong>
+          <span>nuclear operating and pipeline MW</span>
         </div>
         <div class="metric">
-          <strong>2,666</strong>
-          <span>U.S. sites tracked</span>
+          <strong>15,975</strong>
+          <span>power plants available as a layer</span>
         </div>
       </div>
     </section>
@@ -526,30 +49,35 @@
     <!-- Search, status filters, optional overlay layers, and data sources. -->
     <section class="panel control-panel">
       <div class="search-row">
-        <input id="siteSearch" type="search" placeholder="Search name, company, state, market" autocomplete="off">
+        <input id="siteSearch" type="search" placeholder="Search name, company, state, power, water" autocomplete="off">
         <div class="mini-count"><span id="shownCount">0</span> shown</div>
       </div>
 
       <div class="chip-grid" id="statusFilters">
-        <label class="chip" style="--chip-color:#00a6ff;--chip-glow:rgba(0,166,255,0.18)">
+        <label class="chip chip-operating active">
           <input type="checkbox" value="Operating" checked>
           <span class="swatch"></span>
           <span>Operating</span>
         </label>
-        <label class="chip" style="--chip-color:#ffb000;--chip-glow:rgba(255,176,0,0.2)">
+        <label class="chip chip-construction active">
           <input type="checkbox" value="Under construction" checked>
           <span class="swatch"></span>
           <span>Construction</span>
         </label>
-        <label class="chip" style="--chip-color:#ff3d7f;--chip-glow:rgba(255,61,127,0.2)">
-          <input type="checkbox" value="Planned" checked>
+        <label class="chip chip-proposed active">
+          <input type="checkbox" value="Proposed" checked>
           <span class="swatch"></span>
-          <span>Planned</span>
+          <span>Proposed</span>
         </label>
-        <label class="chip" style="--chip-color:#8b5cf6;--chip-glow:rgba(139,92,246,0.2)">
-          <input type="checkbox" value="Market hub" checked>
+        <label class="chip chip-permitted active">
+          <input type="checkbox" value="Permitted" checked>
           <span class="swatch"></span>
-          <span>Market hubs</span>
+          <span>Permitted</span>
+        </label>
+        <label class="chip chip-cancelled active">
+          <input type="checkbox" value="Cancelled" checked>
+          <span class="swatch"></span>
+          <span>Cancelled</span>
         </label>
       </div>
 
@@ -557,6 +85,14 @@
         <label class="layer-toggle active">
           <input id="showNuclear" type="checkbox" checked>
           Nuclear
+        </label>
+        <label class="layer-toggle">
+          <input id="showPower" type="checkbox">
+          Power
+        </label>
+        <label class="layer-toggle active">
+          <input id="showWater" type="checkbox" checked>
+          Water
         </label>
         <label class="layer-toggle active">
           <input id="showConnectors" type="checkbox" checked>
@@ -569,9 +105,13 @@
       </div>
 
       <div class="source-line">
-        Data-center context: <a href="https://cleanview.co/data-centers/us" target="_blank" rel="noopener">Cleanview public U.S. data-center tracker</a>
-        (June 2026). National tracker reports 1,100 operating and 1,526 planned projects.
-        Nuclear source: <a href="https://www.eia.gov/electricity/data/eia860m/xls/may_generator2026.xlsx" target="_blank" rel="noopener">EIA-860M May 2026</a>.
+        Data centers and source-cited power-generation projects:
+        <a href="https://www.compute-atlas.com/api" target="_blank" rel="noopener">Compute Atlas API</a>.
+        Operating and planned generator inventory:
+        <a href="https://www.eia.gov/electricity/data/eia860m/index.php" target="_blank" rel="noopener">EIA-860M</a>.
+        Surface-water context:
+        <a href="https://www.usgs.gov/national-hydrography/national-hydrography-dataset" target="_blank" rel="noopener">USGS NHD</a>
+        and <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a>.
       </div>
     </section>
 
@@ -582,442 +122,23 @@
         <span class="pill">Landscape</span>
       </div>
       <div class="detail-body">
-        Public data-center markers are not a facility census. Market hubs represent metro clusters; project markers use the most precise public location available.
+        Market-hub placeholders are no longer included. Facility markers use public
+        records, and proximity lines compare each data center with its nearest
+        nuclear site, power plant, and named water-source reference.
       </div>
       <dl class="detail-list">
-        <dt>Tracked</dt><dd>2,666 U.S. data-center projects</dd>
-        <dt>Pipeline</dt><dd>357.0 GW planned public power</dd>
-        <dt>Nuclear</dt><dd>56 operating plants in this EIA layer</dd>
+        <dt>Data centers</dt><dd>422 public facility records</dd>
+        <dt>Power plants</dt><dd>15,975 operating and planned records</dd>
+        <dt>Water</dt><dd>41 named reference points</dd>
       </dl>
     </section>
   </aside>
 
-  <!-- External map libraries: Leaflet, marker clustering, and heatmap support. -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-  <!-- Map behavior, filters, popups, and layer toggles. -->
-  <script>
-    // These arrays are generated by `script.py`. Edit the Python source or
-    // run it with `--datacenters-csv` if you want to rebuild them from data.
-    const dataCenters = [{"name": "Fairwater 1 - Mount Pleasant", "developer": "Microsoft", "status": "Operating", "category": "AI megaproject", "capacity_mw": 400.0, "capacity_label": "400 MW public tracker estimate", "landscape_weight": 18.0, "location": "Mount Pleasant / Racine County, Wisconsin", "latitude": 42.7261, "longitude": -87.7829, "precision": "city/project-level approximate", "source": "Cleanview public tracker; Microsoft public reporting", "source_url": "https://cleanview.co/data-centers/us", "notes": "AI-scale data-center campus. Public marker is approximate.", "status_group": "Operating", "type": "Data center / compute marker", "nearest_nuclear_name": "Palisades", "nearest_nuclear_state": "MI", "nearest_nuclear_capacity_mw": 811.8, "nearest_nuclear_distance_mi": 79.8, "nearest_nuclear_latitude": 42.323, "nearest_nuclear_longitude": -86.3146}, {"name": "Project Zodiac - Fort Wayne / Allen County", "developer": "Google", "status": "Operating / expanding", "category": "Hyperscale AI/cloud project", "capacity_mw": 400.0, "capacity_label": "400 MW public tracker estimate", "landscape_weight": 18.0, "location": "Fort Wayne / Allen County, Indiana", "latitude": 41.0793, "longitude": -85.1394, "precision": "city/county-level approximate", "source": "Cleanview public tracker", "source_url": "https://cleanview.co/data-centers/us", "notes": "Public reporting and trackers place this as a major Google campus marker.", "status_group": "Operating", "type": "Data center / compute marker", "nearest_nuclear_name": "Donald C Cook", "nearest_nuclear_state": "MI", "nearest_nuclear_capacity_mw": 2285.3, "nearest_nuclear_distance_mi": 96.3, "nearest_nuclear_latitude": 41.975604, "nearest_nuclear_longitude": -86.56521}, {"name": "Fairwater 2 - Atlanta", "developer": "Microsoft", "status": "Operating / expanding", "category": "AI megaproject", "capacity_mw": 350.0, "capacity_label": "350 MW public tracker estimate", "landscape_weight": 17.0, "location": "Atlanta / Fulton County, Georgia", "latitude": 33.749, "longitude": -84.388, "precision": "city-level approximate", "source": "Cleanview public tracker", "source_url": "https://cleanview.co/data-centers/us", "notes": "Atlanta-area AI/data-center marker. Public location is approximate.", "status_group": "Operating", "type": "Data center / compute marker", "nearest_nuclear_name": "Sequoyah", "nearest_nuclear_state": "TN", "nearest_nuclear_capacity_mw": 2441.0, "nearest_nuclear_distance_mi": 109.7, "nearest_nuclear_latitude": 35.2267, "nearest_nuclear_longitude": -85.0917}, {"name": "Colossus 1", "developer": "xAI", "status": "Operating", "category": "AI supercomputer", "capacity_mw": 300.0, "capacity_label": "300 MW public tracker estimate", "landscape_weight": 17.0, "location": "Memphis / Shelby County, Tennessee", "latitude": 35.1495, "longitude": -90.049, "precision": "city-level approximate", "source": "Cleanview public tracker; public reporting", "source_url": "https://cleanview.co/data-centers/us", "notes": "AI supercomputer/data-center marker. Public marker is city-level approximate.", "status_group": "Operating", "type": "Data center / compute marker", "nearest_nuclear_name": "Browns Ferry", "nearest_nuclear_state": "AL", "nearest_nuclear_capacity_mw": 3854.0, "nearest_nuclear_distance_mi": 168.8, "nearest_nuclear_latitude": 34.7042, "nearest_nuclear_longitude": -87.1189}, {"name": "Council Bluffs Data Center - Campus 2 West", "developer": "Google", "status": "Operating / expanding", "category": "Hyperscale cloud/AI campus", "capacity_mw": 300.0, "capacity_label": "300 MW public tracker estimate", "landscape_weight": 17.0, "location": "Council Bluffs / Pottawattamie County, Iowa", "latitude": 41.2619, "longitude": -95.8608, "precision": "city/project-level approximate", "source": "Cleanview public tracker; Google data-center locations", "source_url": "https://www.google.com/about/datacenters/locations/", "notes": "Long-running hyperscale market with continued cloud and AI relevance.", "status_group": "Operating", "type": "Data center / compute marker", "nearest_nuclear_name": "Cooper Nuclear Station", "nearest_nuclear_state": "NE", "nearest_nuclear_capacity_mw": 801.0, "nearest_nuclear_distance_mi": 63.2, "nearest_nuclear_latitude": 40.3628, "nearest_nuclear_longitude": -95.6408}, {"name": "Stargate Abilene", "developer": "OpenAI / Oracle / Crusoe", "status": "Under construction", "category": "AI megaproject", "capacity_mw": 200.0, "capacity_label": "200 MW initial public estimate", "landscape_weight": 16.0, "location": "Abilene / Taylor County, Texas", "latitude": 32.4487, "longitude": -99.7331, "precision": "city/project-level approximate", "source": "Epoch AI public analysis; public reporting", "source_url": "https://epoch.ai/data-insights/data-center-sizes", "notes": "Public reporting describes initial AI capacity with staged expansion.", "status_group": "Under construction", "type": "Data center / compute marker", "nearest_nuclear_name": "Comanche Peak", "nearest_nuclear_state": "TX", "nearest_nuclear_capacity_mw": 2430.0, "nearest_nuclear_distance_mi": 114.1, "nearest_nuclear_latitude": 32.298365, "nearest_nuclear_longitude": -97.78552}, {"name": "Meta Hyperion - Richland Parish", "developer": "Meta", "status": "Planned", "category": "AI-optimized data-center campus", "capacity_mw": 2000.0, "capacity_label": "2,000+ MW design target", "landscape_weight": 25.0, "location": "Richland Parish, Louisiana", "latitude": 32.4415, "longitude": -91.754, "precision": "parish-level approximate", "source": "Meta Richland Parish data-center announcement", "source_url": "https://datacenters.atmeta.com/richland-parish-data-center/", "notes": "Meta says the campus is designed for more than 2 GW of compute load.", "status_group": "Planned", "type": "Data center / compute marker", "nearest_nuclear_name": "Grand Gulf", "nearest_nuclear_state": "MS", "nearest_nuclear_capacity_mw": 1440.0, "nearest_nuclear_distance_mi": 51.0, "nearest_nuclear_latitude": 32.0081, "nearest_nuclear_longitude": -91.0478}, {"name": "PORTS Technology Campus - Phase 2", "developer": "SB Energy", "status": "Planned", "category": "Large planned data-center campus", "capacity_mw": 9200.0, "capacity_label": "9,200 MW planned public tracker estimate", "landscape_weight": 31.0, "location": "Pike County, Ohio", "latitude": 39.0681, "longitude": -83.0143, "precision": "county-level approximate", "source": "Cleanview public tracker", "source_url": "https://cleanview.co/data-centers/us", "notes": "Very large planned campus marker. Capacity is a public tracker estimate, not an EIA operating load.", "status_group": "Planned", "type": "Data center / compute marker", "nearest_nuclear_name": "Beaver Valley", "nearest_nuclear_state": "PA", "nearest_nuclear_capacity_mw": 1846.8, "nearest_nuclear_distance_mi": 174.0, "nearest_nuclear_latitude": 40.6219, "nearest_nuclear_longitude": -80.4336}, {"name": "Fermi - Project Matador", "developer": "Fermi America", "status": "Planned", "category": "Large planned data-center campus", "capacity_mw": 6000.0, "capacity_label": "6,000 MW planned public tracker estimate", "landscape_weight": 29.0, "location": "Carson County, Texas", "latitude": 35.3456, "longitude": -101.3804, "precision": "county-level approximate", "source": "Cleanview public tracker", "source_url": "https://cleanview.co/data-centers/us", "notes": "Large planned compute campus marker. Public project details remain early-stage.", "status_group": "Planned", "type": "Data center / compute marker", "nearest_nuclear_name": "Comanche Peak", "nearest_nuclear_state": "TX", "nearest_nuclear_capacity_mw": 2430.0, "nearest_nuclear_distance_mi": 294.8, "nearest_nuclear_latitude": 32.298365, "nearest_nuclear_longitude": -97.78552}, {"name": "Wonder Valley / Stratos Project - Phase 2", "developer": "O'Leary Digital", "status": "Planned", "category": "Large planned data-center campus", "capacity_mw": 6000.0, "capacity_label": "6,000 MW planned public tracker estimate", "landscape_weight": 29.0, "location": "Box Elder County, Utah", "latitude": 41.5102, "longitude": -112.0155, "precision": "county-level approximate", "source": "Cleanview public tracker", "source_url": "https://cleanview.co/data-centers/us", "notes": "Large planned campus marker. Public project details remain early-stage.", "status_group": "Planned", "type": "Data center / compute marker", "nearest_nuclear_name": "Columbia Generating Station", "nearest_nuclear_state": "WA", "nearest_nuclear_capacity_mw": 1200.0, "nearest_nuclear_distance_mi": 499.4, "nearest_nuclear_latitude": 46.4711, "nearest_nuclear_longitude": -119.3339}, {"name": "Monarch Compute Campus - Phase 2", "developer": "Nscale", "status": "Planned", "category": "Large planned data-center campus", "capacity_mw": 6000.0, "capacity_label": "6,000 MW planned public tracker estimate", "landscape_weight": 29.0, "location": "Mason County, West Virginia", "latitude": 38.8445, "longitude": -82.1371, "precision": "county-level approximate", "source": "Cleanview public tracker", "source_url": "https://cleanview.co/data-centers/us", "notes": "Large planned campus marker. Public project details remain early-stage.", "status_group": "Planned", "type": "Data center / compute marker", "nearest_nuclear_name": "Beaver Valley", "nearest_nuclear_state": "PA", "nearest_nuclear_capacity_mw": 1846.8, "nearest_nuclear_distance_mi": 152.6, "nearest_nuclear_latitude": 40.6219, "nearest_nuclear_longitude": -80.4336}, {"name": "Northern Virginia / Data Center Alley", "developer": "Multiple operators", "status": "Operating market", "category": "Major market hub", "capacity_mw": null, "capacity_label": "Market marker", "landscape_weight": 28.0, "location": "Ashburn / Loudoun County, Virginia", "latitude": 39.0438, "longitude": -77.4874, "precision": "market-center approximate", "source": "Cleanview public tracker; public market summaries", "source_url": "https://cleanview.co/data-centers/us", "notes": "Represents the dominant Northern Virginia data-center market, not a single facility.", "status_group": "Market hub", "type": "Data center / compute marker", "nearest_nuclear_name": "North Anna", "nearest_nuclear_state": "VA", "nearest_nuclear_capacity_mw": 1959.4, "nearest_nuclear_distance_mi": 69.9, "nearest_nuclear_latitude": 38.06, "nearest_nuclear_longitude": -77.7897}, {"name": "Phoenix Metro Data-Center Market", "developer": "Multiple operators", "status": "Operating market", "category": "Major market hub", "capacity_mw": null, "capacity_label": "Market marker", "landscape_weight": 22.0, "location": "Phoenix / Maricopa County, Arizona", "latitude": 33.4484, "longitude": -112.074, "precision": "market-center approximate", "source": "Cleanview public tracker; public market summaries", "source_url": "https://cleanview.co/data-centers/us", "notes": "Represents a fast-growing Southwest data-center market, not a single facility.", "status_group": "Market hub", "type": "Data center / compute marker", "nearest_nuclear_name": "Palo Verde", "nearest_nuclear_state": "AZ", "nearest_nuclear_capacity_mw": 4209.6, "nearest_nuclear_distance_mi": 45.6, "nearest_nuclear_latitude": 33.3881, "nearest_nuclear_longitude": -112.8617}, {"name": "Dallas-Fort Worth Data-Center Market", "developer": "Multiple operators", "status": "Operating market", "category": "Major market hub", "capacity_mw": null, "capacity_label": "Market marker", "landscape_weight": 21.0, "location": "Dallas-Fort Worth, Texas", "latitude": 32.7767, "longitude": -96.797, "precision": "market-center approximate", "source": "Cleanview public tracker; public market summaries", "source_url": "https://cleanview.co/data-centers/us", "notes": "Represents the North Texas data-center market, not a single facility.", "status_group": "Market hub", "type": "Data center / compute marker", "nearest_nuclear_name": "Comanche Peak", "nearest_nuclear_state": "TX", "nearest_nuclear_capacity_mw": 2430.0, "nearest_nuclear_distance_mi": 66.4, "nearest_nuclear_latitude": 32.298365, "nearest_nuclear_longitude": -97.78552}, {"name": "Columbus / New Albany Data-Center Market", "developer": "Multiple operators", "status": "Operating / expanding market", "category": "Major market hub", "capacity_mw": null, "capacity_label": "Market marker", "landscape_weight": 20.0, "location": "New Albany / Columbus, Ohio", "latitude": 40.0812, "longitude": -82.8088, "precision": "market-center approximate", "source": "Cleanview public tracker; Google and hyperscale public locations", "source_url": "https://www.google.com/about/datacenters/locations/", "notes": "Represents the central Ohio hyperscale cluster, not a single facility.", "status_group": "Market hub", "type": "Data center / compute marker", "nearest_nuclear_name": "Davis Besse", "nearest_nuclear_state": "OH", "nearest_nuclear_capacity_mw": 925.2, "nearest_nuclear_distance_mi": 105.7, "nearest_nuclear_latitude": 41.5967, "nearest_nuclear_longitude": -83.0861}, {"name": "Hillsboro Data-Center Market", "developer": "Multiple operators", "status": "Operating market", "category": "Major market hub", "capacity_mw": null, "capacity_label": "Market marker", "landscape_weight": 18.0, "location": "Hillsboro / Portland Metro, Oregon", "latitude": 45.5229, "longitude": -122.9898, "precision": "market-center approximate", "source": "Cleanview public tracker; public market summaries", "source_url": "https://cleanview.co/data-centers/us", "notes": "Represents the Hillsboro/Portland market, not a single facility.", "status_group": "Market hub", "type": "Data center / compute marker", "nearest_nuclear_name": "Columbia Generating Station", "nearest_nuclear_state": "WA", "nearest_nuclear_capacity_mw": 1200.0, "nearest_nuclear_distance_mi": 187.3, "nearest_nuclear_latitude": 46.4711, "nearest_nuclear_longitude": -119.3339}, {"name": "Silicon Valley / Santa Clara Market", "developer": "Multiple operators", "status": "Operating market", "category": "Major market hub", "capacity_mw": null, "capacity_label": "Market marker", "landscape_weight": 18.0, "location": "Santa Clara / San Jose, California", "latitude": 37.3541, "longitude": -121.9552, "precision": "market-center approximate", "source": "Cleanview public tracker; public market summaries", "source_url": "https://cleanview.co/data-centers/us", "notes": "Represents the Silicon Valley data-center market, not a single facility.", "status_group": "Market hub", "type": "Data center / compute marker", "nearest_nuclear_name": "Diablo Canyon", "nearest_nuclear_state": "CA", "nearest_nuclear_capacity_mw": 2323.0, "nearest_nuclear_distance_mi": 160.2, "nearest_nuclear_latitude": 35.211536, "nearest_nuclear_longitude": -120.8555}, {"name": "Chicago / Elk Grove Data-Center Market", "developer": "Multiple operators", "status": "Operating market", "category": "Major market hub", "capacity_mw": null, "capacity_label": "Market marker", "landscape_weight": 17.0, "location": "Chicago / Elk Grove Village, Illinois", "latitude": 41.8781, "longitude": -87.6298, "precision": "market-center approximate", "source": "Cleanview public tracker; public market summaries", "source_url": "https://cleanview.co/data-centers/us", "notes": "Represents the Chicago-area data-center market, not a single facility.", "status_group": "Market hub", "type": "Data center / compute marker", "nearest_nuclear_name": "Dresden Generating Station", "nearest_nuclear_state": "IL", "nearest_nuclear_capacity_mw": 2018.6, "nearest_nuclear_distance_mi": 47.2, "nearest_nuclear_latitude": 41.39, "nearest_nuclear_longitude": -88.27}, {"name": "Central Washington Data-Center Market", "developer": "Multiple operators", "status": "Operating market", "category": "Major market hub", "capacity_mw": null, "capacity_label": "Market marker", "landscape_weight": 16.0, "location": "Quincy / Moses Lake, Washington", "latitude": 47.2343, "longitude": -119.8526, "precision": "market-center approximate", "source": "Cleanview public tracker; public market summaries", "source_url": "https://cleanview.co/data-centers/us", "notes": "Represents the central Washington hydro-linked data-center market, not a single facility.", "status_group": "Market hub", "type": "Data center / compute marker", "nearest_nuclear_name": "Columbia Generating Station", "nearest_nuclear_state": "WA", "nearest_nuclear_capacity_mw": 1200.0, "nearest_nuclear_distance_mi": 58.1, "nearest_nuclear_latitude": 46.4711, "nearest_nuclear_longitude": -119.3339}];
-    const nuclearPlants = [{"plant_id": "46", "name": "Browns Ferry", "state": "AL", "county": "Limestone", "latitude": 34.7042, "longitude": -87.1189, "capacity_mw": 3854.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 3}, {"plant_id": "6001", "name": "Joseph M Farley", "state": "AL", "county": "Houston", "latitude": 31.2231, "longitude": -85.1116, "capacity_mw": 1776.4, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "8055", "name": "Arkansas Nuclear One", "state": "AR", "county": "Pope", "latitude": 35.311, "longitude": -93.2351, "capacity_mw": 1845.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6008", "name": "Palo Verde", "state": "AZ", "county": "Maricopa", "latitude": 33.3881, "longitude": -112.8617, "capacity_mw": 4209.6, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 3}, {"plant_id": "6099", "name": "Diablo Canyon", "state": "CA", "county": "San Luis Obispo", "latitude": 35.211536, "longitude": -120.8555, "capacity_mw": 2323.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "566", "name": "Millstone", "state": "CT", "county": "New London", "latitude": 41.3107, "longitude": -72.1677, "capacity_mw": 2259.9, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6045", "name": "St Lucie", "state": "FL", "county": "St Lucie", "latitude": 27.348611, "longitude": -80.24639, "capacity_mw": 2160.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "621", "name": "Turkey Point", "state": "FL", "county": "Miami Dade", "latitude": 25.4356, "longitude": -80.3308, "capacity_mw": 1754.4, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6051", "name": "Edwin I Hatch", "state": "GA", "county": "Appling", "latitude": 31.9342, "longitude": -82.3447, "capacity_mw": 1848.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "649", "name": "Vogtle", "state": "GA", "county": "Burke", "latitude": 33.1427, "longitude": -81.7625, "capacity_mw": 4658.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 4}, {"plant_id": "6022", "name": "Braidwood Generation Station", "state": "IL", "county": "Will", "latitude": 41.2435, "longitude": -88.2286, "capacity_mw": 2449.8, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6023", "name": "Byron Generating Station", "state": "IL", "county": "Ogle", "latitude": 42.0742, "longitude": -89.2819, "capacity_mw": 2449.8, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "204", "name": "Clinton Power Station", "state": "IL", "county": "DeWitt", "latitude": 40.1719, "longitude": -88.8339, "capacity_mw": 1138.3, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "869", "name": "Dresden Generating Station", "state": "IL", "county": "Grundy", "latitude": 41.39, "longitude": -88.27, "capacity_mw": 2018.6, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6026", "name": "LaSalle Generating Station", "state": "IL", "county": "LaSalle", "latitude": 41.245498, "longitude": -88.66907, "capacity_mw": 2340.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "880", "name": "Quad Cities Generating Station", "state": "IL", "county": "Rock Island", "latitude": 41.726111, "longitude": -90.31028, "capacity_mw": 2018.6, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "210", "name": "Wolf Creek Generating Station", "state": "KS", "county": "Coffey", "latitude": 38.23926, "longitude": -95.68978, "capacity_mw": 1296.3, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "6462", "name": "River Bend", "state": "LA", "county": "West Feliciana", "latitude": 30.757, "longitude": -91.3327, "capacity_mw": 1035.9, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "4270", "name": "Waterford 3", "state": "LA", "county": "St Charles", "latitude": 29.995267, "longitude": -90.47158, "capacity_mw": 1199.8, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "6011", "name": "Calvert Cliffs Nuclear Power Plant", "state": "MD", "county": "Calvert", "latitude": 38.4344, "longitude": -76.4417, "capacity_mw": 1850.4, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6000", "name": "Donald C Cook", "state": "MI", "county": "Berrien", "latitude": 41.975604, "longitude": -86.56521, "capacity_mw": 2285.3, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "1729", "name": "Fermi", "state": "MI", "county": "Monroe", "latitude": 41.9631, "longitude": -83.2581, "capacity_mw": 1217.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "1715", "name": "Palisades", "state": "MI", "county": "Van Buren", "latitude": 42.323, "longitude": -86.3146, "capacity_mw": 811.8, "statuses": "(OA) Out of service but expected to return to service in next calendar year", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "1922", "name": "Monticello Nuclear Facility", "state": "MN", "county": "Wright", "latitude": 45.3338, "longitude": -93.8493, "capacity_mw": 685.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "1925", "name": "Prairie Island", "state": "MN", "county": "Goodhue", "latitude": 44.622, "longitude": -92.6333, "capacity_mw": 1186.2, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6153", "name": "Callaway", "state": "MO", "county": "Callaway", "latitude": 38.758919, "longitude": -91.77884, "capacity_mw": 1235.8, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "6072", "name": "Grand Gulf", "state": "MS", "county": "Claiborne", "latitude": 32.0081, "longitude": -91.0478, "capacity_mw": 1440.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "6014", "name": "Brunswick Nuclear", "state": "NC", "county": "Brunswick", "latitude": 33.9597, "longitude": -78.0114, "capacity_mw": 2003.2, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6015", "name": "Harris (NC)", "state": "NC", "county": "Wake", "latitude": 35.6334, "longitude": -78.9556, "capacity_mw": 950.9, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "6038", "name": "McGuire", "state": "NC", "county": "Mecklenburg", "latitude": 35.4331, "longitude": -80.9486, "capacity_mw": 2440.6, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "8036", "name": "Cooper Nuclear Station", "state": "NE", "county": "Nemaha", "latitude": 40.3628, "longitude": -95.6408, "capacity_mw": 801.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "6115", "name": "Seabrook", "state": "NH", "county": "Rockingham", "latitude": 42.899167, "longitude": -70.84889, "capacity_mw": 1242.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "6118", "name": "PSEG Hope Creek Generating Station", "state": "NJ", "county": "Salem", "latitude": 39.4666, "longitude": -75.5377, "capacity_mw": 1290.7, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "2410", "name": "PSEG Salem Generating Station", "state": "NJ", "county": "Salem", "latitude": 39.4625, "longitude": -75.5358, "capacity_mw": 2340.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6110", "name": "James A Fitzpatrick", "state": "NY", "county": "Oswego", "latitude": 43.52139, "longitude": -76.40839, "capacity_mw": 883.3, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "2589", "name": "Nine Mile Point Nuclear Station", "state": "NY", "county": "Oswego", "latitude": 43.5211, "longitude": -76.41, "capacity_mw": 1901.1, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6122", "name": "R E Ginna Nuclear Power Plant", "state": "NY", "county": "Wayne", "latitude": 43.2777, "longitude": -77.3099, "capacity_mw": 614.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "6149", "name": "Davis Besse", "state": "OH", "county": "Ottawa", "latitude": 41.5967, "longitude": -83.0861, "capacity_mw": 925.2, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "6020", "name": "Perry", "state": "OH", "county": "Lake", "latitude": 41.8006, "longitude": -81.1439, "capacity_mw": 1311.6, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "6040", "name": "Beaver Valley", "state": "PA", "county": "Beaver", "latitude": 40.6219, "longitude": -80.4336, "capacity_mw": 1846.8, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "8011", "name": "Crane Clean Energy Center", "state": "PA", "county": "Dauphin", "latitude": 40.1515, "longitude": -76.7232, "capacity_mw": 980.8, "statuses": "(OS) Out of service and NOT expected to return to service in next calendar year", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "6105", "name": "Limerick", "state": "PA", "county": "Montgomery", "latitude": 40.224303, "longitude": -75.58744, "capacity_mw": 2277.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "3166", "name": "Peach Bottom", "state": "PA", "county": "York", "latitude": 39.758936, "longitude": -76.26874, "capacity_mw": 2876.4, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6103", "name": "TalenEnergy Susquehanna", "state": "PA", "county": "Luzerne", "latitude": 41.0919, "longitude": -76.1462, "capacity_mw": 2532.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6036", "name": "Catawba", "state": "SC", "county": "York", "latitude": 35.0514, "longitude": -81.0694, "capacity_mw": 2410.2, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "3251", "name": "H B Robinson", "state": "SC", "county": "Darlington", "latitude": 34.4017, "longitude": -80.1589, "capacity_mw": 768.6, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "3265", "name": "Oconee", "state": "SC", "county": "Oconee", "latitude": 34.7939, "longitude": -82.8986, "capacity_mw": 2666.7, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 3}, {"plant_id": "6127", "name": "V C Summer", "state": "SC", "county": "Fairfield", "latitude": 34.2983, "longitude": -81.3153, "capacity_mw": 1029.6, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "6152", "name": "Sequoyah", "state": "TN", "county": "Hamilton", "latitude": 35.2267, "longitude": -85.0917, "capacity_mw": 2441.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "7722", "name": "Watts Bar Nuclear Plant", "state": "TN", "county": "Rhea", "latitude": 35.6021, "longitude": -84.7895, "capacity_mw": 2539.8, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6145", "name": "Comanche Peak", "state": "TX", "county": "Somervell", "latitude": 32.298365, "longitude": -97.78552, "capacity_mw": 2430.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6251", "name": "South Texas Project", "state": "TX", "county": "Matagorda", "latitude": 28.795, "longitude": -96.0481, "capacity_mw": 2708.6, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "6168", "name": "North Anna", "state": "VA", "county": "Louisa", "latitude": 38.06, "longitude": -77.7897, "capacity_mw": 1959.4, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "3806", "name": "Surry", "state": "VA", "county": "Surry", "latitude": 37.1661, "longitude": -76.6986, "capacity_mw": 1695.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}, {"plant_id": "371", "name": "Columbia Generating Station", "state": "WA", "county": "Benton", "latitude": 46.4711, "longitude": -119.3339, "capacity_mw": 1200.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 1}, {"plant_id": "4046", "name": "Point Beach Nuclear Plant", "state": "WI", "county": "Manitowoc", "latitude": 44.2806, "longitude": -87.5369, "capacity_mw": 1286.0, "statuses": "(OP) Operating", "type": "Nuclear power plant", "source": "EIA-860M", "source_url": "https://www.eia.gov/electricity/data/eia860m/", "unit_count": 2}];
-    const generatedAt = "June 30, 2026 10:40 AM";
-
-    // Marker colors, glow colors, and short labels used by data-center status.
-    const statusStyles = {
-      "Operating": { color: "#00a6ff", glow: "rgba(0, 166, 255, 0.26)", tag: "OP" },
-      "Under construction": { color: "#ffb000", glow: "rgba(255, 176, 0, 0.28)", tag: "UC" },
-      "Planned": { color: "#ff3d7f", glow: "rgba(255, 61, 127, 0.26)", tag: "PL" },
-      "Market hub": { color: "#8b5cf6", glow: "rgba(139, 92, 246, 0.27)", tag: "HUB" },
-      "Other": { color: "#14b8a6", glow: "rgba(20, 184, 166, 0.22)", tag: "DC" }
-    };
-
-    // Keep the initial view and panning constrained to the continental U.S.
-    const US_BOUNDS = L.latLngBounds(
-      [24.396308, -125.0],
-      [49.384358, -66.93457]
-    );
-
-    // Create the Leaflet map and apply the bounds guard above.
-    const map = L.map("map", {
-      maxBounds: US_BOUNDS,
-      maxBoundsViscosity: 1.0,
-      minZoom: 4,
-      maxZoom: 10,
-      zoomControl: false,
-      preferCanvas: true,
-      scrollWheelZoom: true
-    });
-
-    map.fitBounds(US_BOUNDS, { padding: [20, 20] });
-
-    // Background map options shown in the layer picker.
-    const baseLayers = {
-      "Color": L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
-      }),
-      "Light": L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
-      }),
-      "Dark": L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
-      }),
-      "Satellite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-        maxZoom: 19,
-        attribution: "Tiles &copy; Esri"
-      })
-    };
-    baseLayers.Color.addTo(map);
-
-    L.control.zoom({ position: "bottomright" }).addTo(map);
-    L.control.layers(baseLayers, null, { position: "bottomright", collapsed: true }).addTo(map);
-
-    // Cluster data-center markers so dense markets stay readable at low zoom.
-    const dcCluster = L.markerClusterGroup({
-      showCoverageOnHover: false,
-      spiderfyOnMaxZoom: true,
-      maxClusterRadius: 44,
-      iconCreateFunction: (cluster) => {
-        const count = cluster.getChildCount();
-        const size = count > 20 ? 58 : count > 9 ? 50 : 44;
-        return L.divIcon({
-          html: `<div class="cluster-icon" style="--size:${size}px"><b>${count}</b><span>sites</span></div>`,
-          className: "cluster-wrap",
-          iconSize: L.point(size, size)
-        });
-      }
-    });
-
-    // Overlay groups are toggled by the checkboxes in the control panel.
-    const nuclearLayer = L.layerGroup();
-    const connectorLayer = L.layerGroup();
-    const heatLayer = L.heatLayer(buildHeatPoints(), {
-      radius: 34,
-      blur: 30,
-      maxZoom: 7,
-      gradient: {
-        0.18: "#22d3ee",
-        0.38: "#22c55e",
-        0.58: "#facc15",
-        0.78: "#fb7185",
-        1.0: "#a855f7"
-      }
-    });
-
-    map.addLayer(dcCluster);
-    map.addLayer(nuclearLayer);
-    map.addLayer(connectorLayer);
-
-    // Cache references to controls that drive filtering and layer visibility.
-    const searchInput = document.getElementById("siteSearch");
-    const shownCount = document.getElementById("shownCount");
-    const showNuclear = document.getElementById("showNuclear");
-    const showConnectors = document.getElementById("showConnectors");
-    const showHeat = document.getElementById("showHeat");
-    const heatToggleLabel = document.getElementById("heatToggleLabel");
-    const detailPanel = document.getElementById("detailPanel");
-
-    // Escape untrusted text before inserting it into popups or the detail panel.
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    // Build a safe external source link and reject non-http(s) URLs.
-    function safeExternalLink(url, label) {
-      if (!url) return "";
-      try {
-        const parsed = new URL(url, window.location.href);
-        if (!["http:", "https:"].includes(parsed.protocol)) return "";
-        return `<a href="${escapeHtml(parsed.href)}" target="_blank" rel="noopener">${escapeHtml(label || "Source")}</a>`;
-      } catch {
-        return "";
-      }
-    }
-
-    // Format numeric values for user-facing labels.
-    function numberFormat(value, digits = 0) {
-      const number = Number(value);
-      if (!Number.isFinite(number)) return "";
-      return number.toLocaleString(undefined, { maximumFractionDigits: digits });
-    }
-
-    // Add the MW suffix only when a real positive capacity exists.
-    function mwLabel(value) {
-      const number = Number(value);
-      if (!Number.isFinite(number) || number <= 0) return "";
-      return `${numberFormat(number)} MW`;
-    }
-
-    // Size data-center markers by capacity, falling back to landscape weight.
-    function markerSize(site, minimum = 24, maximum = 54) {
-      const capacity = Number(site.capacity_mw);
-      if (Number.isFinite(capacity) && capacity > 0) {
-        return Math.max(minimum, Math.min(maximum, Math.round(minimum + Math.sqrt(capacity) * 0.36)));
-      }
-      const weight = Number(site.landscape_weight);
-      if (Number.isFinite(weight) && weight > 0) {
-        return Math.max(minimum, Math.min(maximum, Math.round(minimum + weight * 0.82)));
-      }
-      return minimum;
-    }
-
-    // Size nuclear markers by plant nameplate capacity.
-    function nuclearSize(plant) {
-      const capacity = Number(plant.capacity_mw);
-      if (!Number.isFinite(capacity) || capacity <= 0) return 24;
-      return Math.max(24, Math.min(46, Math.round(23 + Math.sqrt(capacity) * 0.28)));
-    }
-
-    // Create a colored data-center marker icon for Leaflet.
-    function dcIcon(site) {
-      const style = statusStyles[site.status_group] || statusStyles.Other;
-      const size = markerSize(site);
-      return L.divIcon({
-        className: "",
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-        popupAnchor: [0, -size / 2],
-        html: `<div class="map-marker" style="--size:${size}px;--marker:${style.color};--glow:${style.glow}"><span class="marker-label">${style.tag}</span></div>`
-      });
-    }
-
-    // Create a green nuclear plant marker icon for Leaflet.
-    function nuclearIcon(plant) {
-      const size = nuclearSize(plant);
-      return L.divIcon({
-        className: "",
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-        popupAnchor: [0, -size / 2],
-        html: `<div class="map-marker nuclear-marker" style="--size:${size}px;--marker:#21c55d;--glow:rgba(33,197,93,0.28)"><span class="marker-label">N</span></div>`
-      });
-    }
-
-    // Convert popup label/value pairs into a compact table, skipping blanks.
-    function popupTable(rows) {
-      const tableRows = rows
-        .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== "")
-        .map(([label, value]) => `<tr><th>${escapeHtml(label)}</th><td>${value}</td></tr>`)
-        .join("");
-      return `<table class="popup-table">${tableRows}</table>`;
-    }
-
-    // Build the popup HTML for one data-center or market marker.
-    function dcPopup(site) {
-      const source = safeExternalLink(site.source_url, site.source || "Source");
-      const nearest = site.nearest_nuclear_name
-        ? `${escapeHtml(site.nearest_nuclear_name)} (${escapeHtml(site.nearest_nuclear_state)}), ${numberFormat(site.nearest_nuclear_distance_mi, 1)} mi`
-        : "";
-      return `
-        <div class="popup-kicker">${escapeHtml(site.status_group)} data-center marker</div>
-        <h3 class="popup-title">${escapeHtml(site.name)}</h3>
-        ${popupTable([
-          ["Developer", escapeHtml(site.developer)],
-          ["Category", escapeHtml(site.category)],
-          ["Status", escapeHtml(site.status)],
-          ["Power", escapeHtml(site.capacity_label || mwLabel(site.capacity_mw))],
-          ["Location", escapeHtml(site.location)],
-          ["Precision", escapeHtml(site.precision)],
-          ["Nearest nuclear", nearest],
-          ["Notes", escapeHtml(site.notes)],
-          ["Source", source]
-        ])}
-      `;
-    }
-
-    // Build the popup HTML for one nuclear plant marker.
-    function nuclearPopup(plant) {
-      const source = safeExternalLink(plant.source_url, plant.source);
-      return `
-        <div class="popup-kicker">Operating nuclear plant</div>
-        <h3 class="popup-title">${escapeHtml(plant.name)}</h3>
-        ${popupTable([
-          ["State", escapeHtml(plant.state)],
-          ["County", escapeHtml(plant.county)],
-          ["EIA Plant ID", escapeHtml(plant.plant_id)],
-          ["Nameplate", escapeHtml(mwLabel(plant.capacity_mw))],
-          ["Generator rows", escapeHtml(plant.unit_count)],
-          ["Status", escapeHtml(plant.statuses)],
-          ["Source", source]
-        ])}
-      `;
-    }
-
-    // Replace the side detail panel with the clicked marker's key facts.
-    function updateDetail(site, kind) {
-      if (!site) return;
-      if (kind === "nuclear") {
-        detailPanel.innerHTML = `
-          <div class="detail-title">
-            <h2>${escapeHtml(site.name)}</h2>
-            <span class="pill" style="background:#15803d">Nuclear</span>
-          </div>
-          <dl class="detail-list">
-            <dt>State</dt><dd>${escapeHtml(site.state)}</dd>
-            <dt>County</dt><dd>${escapeHtml(site.county)}</dd>
-            <dt>Nameplate</dt><dd>${escapeHtml(mwLabel(site.capacity_mw))}</dd>
-            <dt>Units</dt><dd>${escapeHtml(site.unit_count)}</dd>
-          </dl>
-        `;
-        return;
-      }
-
-      const style = statusStyles[site.status_group] || statusStyles.Other;
-      detailPanel.innerHTML = `
-        <div class="detail-title">
-          <h2>${escapeHtml(site.name)}</h2>
-          <span class="pill" style="background:${style.color}">${escapeHtml(site.status_group)}</span>
-        </div>
-        <div class="detail-body">${escapeHtml(site.notes || site.location || "")}</div>
-        <dl class="detail-list">
-          <dt>Developer</dt><dd>${escapeHtml(site.developer)}</dd>
-          <dt>Power</dt><dd>${escapeHtml(site.capacity_label || mwLabel(site.capacity_mw) || "Market marker")}</dd>
-          <dt>Location</dt><dd>${escapeHtml(site.location)}</dd>
-          <dt>Nearest N</dt><dd>${escapeHtml(site.nearest_nuclear_name || "")}${site.nearest_nuclear_distance_mi ? `, ${numberFormat(site.nearest_nuclear_distance_mi, 1)} mi` : ""}</dd>
-        </dl>
-      `;
-    }
-
-    // Combine data-center and nuclear coordinates into weighted heatmap points.
-    function buildHeatPoints() {
-      const dcPoints = dataCenters.map((site) => {
-        const capacity = Number(site.capacity_mw);
-        const weight = Number(site.landscape_weight);
-        const intensity = Number.isFinite(capacity) && capacity > 0
-          ? Math.min(1, Math.log10(capacity + 10) / 4.1)
-          : Math.min(0.78, Math.max(0.32, weight / 36));
-        return [site.latitude, site.longitude, intensity];
-      });
-      const nuclearPoints = nuclearPlants.map((plant) => {
-        const capacity = Number(plant.capacity_mw);
-        const intensity = Number.isFinite(capacity) && capacity > 0
-          ? Math.min(0.85, Math.log10(capacity + 10) / 4.4)
-          : 0.45;
-        return [plant.latitude, plant.longitude, intensity];
-      });
-      return dcPoints.concat(nuclearPoints);
-    }
-
-    // Read the checked status filters from the control panel.
-    function activeStatuses() {
-      return new Set(
-        Array.from(document.querySelectorAll("#statusFilters input:checked")).map((input) => input.value)
-      );
-    }
-
-    // Search across the fields users are likely to type: name, company, place, and notes.
-    function siteMatchesSearch(site, query) {
-      if (!query) return true;
-      const haystack = [
-        site.name,
-        site.developer,
-        site.status,
-        site.category,
-        site.location,
-        site.nearest_nuclear_name,
-        site.notes
-      ].join(" ").toLowerCase();
-      return haystack.includes(query);
-    }
-
-    // Rebuild the data-center markers and proximity lines from the current filters.
-    function refreshDataCenterLayer() {
-      const statuses = activeStatuses();
-      const query = searchInput.value.trim().toLowerCase();
-      dcCluster.clearLayers();
-      connectorLayer.clearLayers();
-
-      let shown = 0;
-      for (const site of dataCenters) {
-        if (!statuses.has(site.status_group) || !siteMatchesSearch(site, query)) {
-          continue;
-        }
-        shown += 1;
-        const marker = L.marker([site.latitude, site.longitude], { icon: dcIcon(site), title: site.name })
-          .bindPopup(dcPopup(site), { maxWidth: 360 })
-          .bindTooltip(`${site.name} - ${site.status_group}`);
-        marker.on("click", () => updateDetail(site, "data-center"));
-        dcCluster.addLayer(marker);
-
-        if (showConnectors.checked && site.nearest_nuclear_latitude && site.nearest_nuclear_longitude) {
-          const style = statusStyles[site.status_group] || statusStyles.Other;
-          const line = L.polyline(
-            [
-              [site.latitude, site.longitude],
-              [site.nearest_nuclear_latitude, site.nearest_nuclear_longitude]
-            ],
-            {
-              color: style.color,
-              weight: 1.4,
-              opacity: 0.36,
-              dashArray: "4 7",
-              interactive: false
-            }
-          );
-          connectorLayer.addLayer(line);
-        }
-      }
-      shownCount.textContent = shown.toLocaleString();
-    }
-
-    // Build all nuclear plant markers once; visibility is toggled separately.
-    function buildNuclearLayer() {
-      nuclearLayer.clearLayers();
-      for (const plant of nuclearPlants) {
-        const marker = L.marker([plant.latitude, plant.longitude], { icon: nuclearIcon(plant), title: plant.name })
-          .bindPopup(nuclearPopup(plant), { maxWidth: 360 })
-          .bindTooltip(`${plant.name} - ${mwLabel(plant.capacity_mw)}`);
-        marker.on("click", () => updateDetail(plant, "nuclear"));
-        nuclearLayer.addLayer(marker);
-      }
-    }
-
-    // Keep checkbox state, map layers, and active button styling synchronized.
-    function syncLayerToggles() {
-      if (showNuclear.checked) {
-        if (!map.hasLayer(nuclearLayer)) map.addLayer(nuclearLayer);
-      } else if (map.hasLayer(nuclearLayer)) {
-        map.removeLayer(nuclearLayer);
-      }
-
-      if (showConnectors.checked) {
-        if (!map.hasLayer(connectorLayer)) map.addLayer(connectorLayer);
-      } else if (map.hasLayer(connectorLayer)) {
-        map.removeLayer(connectorLayer);
-      }
-
-      if (showHeat.checked) {
-        if (!map.hasLayer(heatLayer)) map.addLayer(heatLayer);
-        heatToggleLabel.classList.add("active");
-      } else {
-        if (map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
-        heatToggleLabel.classList.remove("active");
-      }
-
-      showNuclear.closest(".layer-toggle").classList.toggle("active", showNuclear.checked);
-      showConnectors.closest(".layer-toggle").classList.toggle("active", showConnectors.checked);
-    }
-
-    // Zoom the initial view to include every marker.
-    function fitToData() {
-      const bounds = L.latLngBounds([]);
-      dataCenters.forEach((site) => bounds.extend([site.latitude, site.longitude]));
-      nuclearPlants.forEach((plant) => bounds.extend([plant.latitude, plant.longitude]));
-      if (bounds.isValid()) {
-        map.fitBounds(bounds.pad(0.08), { maxZoom: 5 });
-      }
-      map.setMaxBounds(US_BOUNDS);
-    }
-
-    // Initial render: build layers, apply default toggles, and frame the data.
-    buildNuclearLayer();
-    refreshDataCenterLayer();
-    syncLayerToggles();
-    fitToData();
-
-    // User interactions: search and filter changes rebuild only what needs updating.
-    searchInput.addEventListener("input", refreshDataCenterLayer);
-    document.querySelectorAll("#statusFilters input").forEach((input) => {
-      input.addEventListener("change", refreshDataCenterLayer);
-    });
-    [showNuclear, showConnectors, showHeat].forEach((input) => {
-      input.addEventListener("change", () => {
-        refreshDataCenterLayer();
-        syncLayerToggles();
-      });
-    });
-
-    // Show when this static page was generated.
-    map.attributionControl.addAttribution(`Generated ${escapeHtml(generatedAt)}`);
-  </script>
+  <!-- External map libraries and map behavior are loaded with defer for faster parsing. -->
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script defer src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script defer src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script defer src="map-data.js"></script>
+  <script defer src="app.js"></script>
 </body>
 </html>

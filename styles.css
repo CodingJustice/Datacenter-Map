@@ -1,0 +1,539 @@
+/* Styles for the U.S. data-center and nuclear power map. */
+/* Theme variables used by panels, controls, markers, and map overlays. */
+    :root {
+      --ink: #0c1222;
+      --muted: #5e6a80;
+      --panel: rgba(255, 255, 255, 0.94);
+      --panel-strong: rgba(255, 255, 255, 0.98);
+      --line: rgba(15, 23, 42, 0.14);
+      --blue: #00a6ff;
+      --amber: #ffb000;
+      --magenta: #ff3d7f;
+      --violet: #8b5cf6;
+      --green: #21c55d;
+      --teal: #00d4b8;
+      --shadow: 0 18px 44px rgba(8, 18, 38, 0.22);
+    }
+
+    /* Make the browser viewport and the Leaflet map fill the page. */
+    html,
+    body {
+      block-size: 100%;
+      margin: 0;
+      background: #08111f;
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    /* Leaflet attaches its interactive map to this element. */
+    #map {
+      block-size: 100%;
+      min-block-size: 720px;
+      inline-size: 100%;
+      background: #101827;
+    }
+
+    .leaflet-container {
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    /* Floating left-side UI that stays clickable above the map. */
+    .ui-shell {
+      position: fixed;
+      inset-block-start: 18px;
+      inset-inline-start: 18px;
+      z-index: 900;
+      inline-size: min(390px, calc(100vw - 36px));
+      display: grid;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    /* Shared panel treatment for the intro, controls, and detail card. */
+    .panel {
+      pointer-events: auto;
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.78);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    /* Top summary panel with title text and generated metrics. */
+    .intro-panel {
+      overflow: hidden;
+    }
+
+    .intro-band {
+      padding: 14px 16px 12px;
+      color: #ffffff;
+      background:
+        linear-gradient(135deg, rgba(0, 166, 255, 0.96), rgba(255, 61, 127, 0.92) 52%, rgba(33, 197, 93, 0.9)),
+        #14315a;
+    }
+
+    .eyebrow {
+      margin-block-end: 5px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.9;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.06;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      margin: 8px 0 0;
+      max-inline-size: 35rem;
+      color: rgba(255, 255, 255, 0.91);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+      border-block-start: 1px solid var(--line);
+    }
+
+    .metric {
+      min-inline-size: 0;
+      padding: 10px 12px;
+      background: var(--panel-strong);
+    }
+
+    .metric strong {
+      display: block;
+      color: #0f172a;
+      font-size: 18px;
+      line-height: 1.05;
+      white-space: nowrap;
+    }
+
+    .metric span {
+      display: block;
+      margin-block-start: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.15;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Search box, status filters, layer toggles, and source note. */
+    .control-panel {
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .search-row input {
+      min-inline-size: 0;
+      border: 1px solid rgba(15, 23, 42, 0.16);
+      border-radius: 8px;
+      padding: 10px 11px;
+      color: var(--ink);
+      background: #ffffff;
+      font: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .search-row input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(0, 166, 255, 0.16);
+    }
+
+    .mini-count {
+      min-inline-size: 68px;
+      border-radius: 8px;
+      padding: 9px 10px;
+      color: #ffffff;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+      background: #111827;
+    }
+
+    .chip-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .chip,
+    .layer-toggle {
+      display: flex;
+      min-inline-size: 0;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid rgba(15, 23, 42, 0.13);
+      border-radius: 8px;
+      padding: 8px 9px;
+      background: rgba(255, 255, 255, 0.82);
+      color: #172033;
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.15;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .chip input,
+    .layer-toggle input {
+      accent-color: #0ea5e9;
+      inline-size: 14px;
+      block-size: 14px;
+      flex: 0 0 auto;
+    }
+
+    .swatch {
+      inline-size: 11px;
+      block-size: 11px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--chip-color);
+      box-shadow: 0 0 0 3px var(--chip-glow);
+    }
+
+    .chip-operating {
+      --chip-color: #00a6ff;
+      --chip-glow: rgba(0, 166, 255, 0.18);
+    }
+
+    .chip-construction {
+      --chip-color: #ffb000;
+      --chip-glow: rgba(255, 176, 0, 0.2);
+    }
+
+    .chip-proposed {
+      --chip-color: #8b5cf6;
+      --chip-glow: rgba(139, 92, 246, 0.2);
+    }
+
+    .chip-planned {
+      --chip-color: #ff3d7f;
+      --chip-glow: rgba(255, 61, 127, 0.2);
+    }
+
+    .chip-permitted {
+      --chip-color: #14b8a6;
+      --chip-glow: rgba(20, 184, 166, 0.2);
+    }
+
+    .chip-cancelled {
+      --chip-color: #64748b;
+      --chip-glow: rgba(100, 116, 139, 0.2);
+    }
+
+    .chip-other {
+      --chip-color: #334155;
+      --chip-glow: rgba(51, 65, 85, 0.18);
+    }
+
+    .layer-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+      gap: 7px;
+    }
+
+    .layer-toggle {
+      justify-content: center;
+      padding: 8px;
+    }
+
+    .layer-toggle.active,
+    .chip.active {
+      border-color: rgba(14, 165, 233, 0.42);
+      background: linear-gradient(180deg, #ffffff, #eef9ff);
+    }
+
+    .source-line {
+      color: #5e6a80;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .source-line a {
+      color: #0369a1;
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    /* Detail panel that updates when a marker is clicked. */
+    .detail-panel {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .detail-title {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .detail-title h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.18;
+    }
+
+    .pill {
+      flex: 0 0 auto;
+      border-radius: 999px;
+      padding: 4px 8px;
+      color: #ffffff;
+      background: #0f172a;
+      font-size: 10px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .detail-body {
+      color: #344054;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .detail-list {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 5px 9px;
+      margin: 0;
+      font-size: 12px;
+    }
+
+    .detail-list dt {
+      color: #64748b;
+      font-weight: 800;
+    }
+
+    .detail-list dd {
+      min-inline-size: 0;
+      margin: 0;
+      color: #111827;
+    }
+
+    /* Custom Leaflet marker and cluster visuals. */
+    .map-marker {
+      position: relative;
+      display: grid;
+      place-items: center;
+      inline-size: var(--size);
+      block-size: var(--size);
+      border: 2px solid rgba(255, 255, 255, 0.92);
+      border-radius: 999px;
+      color: #ffffff;
+      background: radial-gradient(circle at 35% 28%, #ffffff 0 7%, var(--marker) 35%, #172033 100%);
+      box-shadow: 0 0 0 4px var(--glow), 0 9px 24px rgba(4, 12, 26, 0.28), 0 0 26px var(--glow);
+      transform: translate3d(0, 0, 0);
+    }
+
+    .map-marker::after {
+      position: absolute;
+      inset: -7px;
+      content: "";
+      border: 1px solid var(--glow);
+      border-radius: inherit;
+      opacity: 0.55;
+      transform: scale(1.18);
+    }
+
+    .marker-label {
+      position: relative;
+      z-index: 1;
+      font-size: 9px;
+      font-weight: 900;
+      line-height: 1;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    }
+
+    .nuclear-marker {
+      background: radial-gradient(circle at 35% 28%, #eafff1 0 8%, var(--green) 38%, #0e3d27 100%);
+    }
+
+    .power-marker {
+      border-width: 1px;
+      background: radial-gradient(circle at 35% 28%, #fff7ed 0 8%, var(--marker) 42%, #431407 100%);
+      box-shadow: 0 0 0 3px var(--glow), 0 6px 18px rgba(4, 12, 26, 0.22);
+    }
+
+    .water-marker {
+      background: radial-gradient(circle at 35% 28%, #eff6ff 0 8%, #0ea5e9 40%, #0c4a6e 100%);
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18), 0 7px 18px rgba(4, 12, 26, 0.2);
+    }
+
+    .power-marker::after,
+    .water-marker::after {
+      display: none;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 0.8;
+        transform: scale(0.88);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(1.55);
+      }
+    }
+
+    .cluster-wrap {
+      background: transparent;
+      border: 0;
+    }
+
+    .cluster-icon {
+      display: grid;
+      place-items: center;
+      inline-size: var(--size);
+      block-size: var(--size);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      border-radius: 999px;
+      color: #ffffff;
+      background: radial-gradient(circle at 35% 28%, #ffffff 0 7%, #2dd4bf 28%, #2563eb 62%, #0f172a 100%);
+      box-shadow: 0 0 0 5px rgba(45, 212, 191, 0.2), 0 12px 30px rgba(15, 23, 42, 0.28);
+      text-align: center;
+    }
+
+    .cluster-icon b {
+      display: block;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .cluster-icon span {
+      display: block;
+      margin-block-start: 1px;
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* Popup, tooltip, and built-in Leaflet control styling. */
+    .leaflet-popup-content-wrapper {
+      border-radius: 8px;
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.26);
+    }
+
+    .leaflet-popup-content {
+      inline-size: 310px !important;
+      margin: 14px;
+      color: #172033;
+    }
+
+    .popup-title {
+      margin: 0 0 8px;
+      font-size: 16px;
+      line-height: 1.16;
+    }
+
+    .popup-kicker {
+      margin-block-end: 5px;
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .popup-table {
+      inline-size: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .popup-table th,
+    .popup-table td {
+      padding: 5px 0;
+      border-block-start: 1px solid rgba(15, 23, 42, 0.08);
+      vertical-align: start;
+    }
+
+    .popup-table th {
+      inline-size: 34%;
+      padding-inline-end: 10px;
+      color: #64748b;
+      font-weight: 850;
+      text-align: start;
+    }
+
+    .popup-table a {
+      color: #0369a1;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .leaflet-tooltip {
+      border: 0;
+      border-radius: 7px;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.9);
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.2);
+      font-weight: 750;
+    }
+
+    .leaflet-control-zoom,
+    .leaflet-control-layers {
+      border: 0 !important;
+      box-shadow: var(--shadow) !important;
+    }
+
+    .leaflet-control-attribution {
+      color: #334155;
+      background: rgba(255, 255, 255, 0.84) !important;
+      font-size: 10px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .map-marker::after {
+        animation: none;
+      }
+    }
+
+    /* Compact layout adjustments for narrow screens. */
+    @media (max-width: 780px) {
+      #map {
+        min-block-size: 780px;
+      }
+
+      .ui-shell {
+        inset-block-start: 10px;
+        inset-inline-start: 10px;
+        inline-size: calc(100vw - 20px);
+      }
+
+      h1 {
+        font-size: 21px;
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .detail-panel {
+        display: none;
+      }
+    }
