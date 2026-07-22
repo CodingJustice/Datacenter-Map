@@ -4,32 +4,57 @@
   /*
    * Main browser behavior for the infrastructure map.
    *
-   * The HTML file owns page structure, map-data.js owns generated data, and
-   * this file owns safe rendering, filtering, layer toggles, and popups.
-   * Large optional layers are lazy-built so the first map view stays responsive.
+   * The HTML file owns page structure, the data/ directory owns generated
+   * JSON/GeoJSON, and this file owns safe rendering, filtering, layer toggles,
+   * and popups. Large optional layers are lazy-fetched so the first map view
+   * stays responsive.
    */
 
   const MAX_TEXT_LENGTH = 500;
   const MAX_DATA_CENTER_RECORDS = 2000;
   const MAX_POWER_RECORDS = 25000;
   const MAX_WATER_RECORDS = 1000;
+  const MAX_INITIAL_DATA_CHARS = 1_500_000;
+  const MAX_POWER_DATA_CHARS = 6_500_000;
+  const MAX_DETAIL_DATA_CHARS = 900_000;
+  const MAX_RENDERED_POWER_MARKERS = 1600;
+  const POWER_BOUNDS_PADDING = 0.35;
+  const MAX_ANIMATED_MOVE_METERS = 450_000;
+  const SELECTED_RESULT_ZOOM = 8;
 
-  const rawData = window.DatacenterMapData || {};
+  const VISIBILITY = Object.freeze({
+    dataHubMaxZoom: 5,
+    dataMarkerMinZoom: 6,
+    connectorMinZoom: 7,
+    nuclearMinZoom: 5,
+    waterMinZoom: 6,
+    powerMinZoom: 7,
+    heatMaxZoom: 7
+  });
+
+  const DATA_ENDPOINTS = Object.freeze({
+    summary: "data/map-summary.json",
+    dataCenterHubs: "data/data-center-hubs.geojson",
+    dataCenters: "data/data-centers.geojson",
+    nuclearPlants: "data/nuclear-plants.geojson",
+    powerPlants: "data/power-plants.geojson",
+    waterSources: "data/water-sources.geojson"
+  });
 
   const statusStyles = Object.freeze({
-    Operating: { color: "#00a6ff", glow: "rgba(0, 166, 255, 0.26)", tag: "OP" },
-    "Under construction": { color: "#ffb000", glow: "rgba(255, 176, 0, 0.28)", tag: "UC" },
-    Planned: { color: "#ff3d7f", glow: "rgba(255, 61, 127, 0.26)", tag: "PL" },
-    Proposed: { color: "#8b5cf6", glow: "rgba(139, 92, 246, 0.27)", tag: "PR" },
-    Permitted: { color: "#14b8a6", glow: "rgba(20, 184, 166, 0.22)", tag: "PM" },
-    Cancelled: { color: "#64748b", glow: "rgba(100, 116, 139, 0.22)", tag: "CA" },
+    Operating: { color: "#005ea8", glow: "rgba(0, 94, 168, 0.28)", tag: "OP" },
+    "Under construction": { color: "#8a5a00", glow: "rgba(138, 90, 0, 0.28)", tag: "UC" },
+    Planned: { color: "#b91c5c", glow: "rgba(185, 28, 92, 0.27)", tag: "PL" },
+    Proposed: { color: "#5b21b6", glow: "rgba(91, 33, 182, 0.27)", tag: "PR" },
+    Permitted: { color: "#04766d", glow: "rgba(4, 118, 109, 0.24)", tag: "PM" },
+    Cancelled: { color: "#475569", glow: "rgba(71, 85, 105, 0.24)", tag: "CA" },
     Other: { color: "#334155", glow: "rgba(51, 65, 85, 0.2)", tag: "DC" }
   });
 
   const proximityStyles = Object.freeze({
-    nuclear: { color: "#21c55d", dashArray: "4 7", opacity: 0.36 },
-    power: { color: "#f97316", dashArray: "2 7", opacity: 0.3 },
-    water: { color: "#0ea5e9", dashArray: "1 7", opacity: 0.32 }
+    nuclear: { color: "#15803d", dashArray: "6 8", opacity: 0.72 },
+    power: { color: "#c2410c", dashArray: "2 8", opacity: 0.68 },
+    water: { color: "#0369a1", dashArray: "1 9", opacity: 0.7 }
   });
 
   const US_BOUNDS = L.latLngBounds(
@@ -46,14 +71,33 @@
   const showConnectors = document.getElementById("showConnectors");
   const showHeat = document.getElementById("showHeat");
   const detailPanel = document.getElementById("detailPanel");
+  const resultsList = document.getElementById("resultsList");
+  const resultsMeta = document.getElementById("resultsMeta");
+  const summaryText = document.getElementById("summaryText");
+  const dataCapacityMetric = document.getElementById("dataCapacityMetric");
+  const nuclearCapacityMetric = document.getElementById("nuclearCapacityMetric");
+  const powerCountMetric = document.getElementById("powerCountMetric");
+  const dataCountDetail = document.getElementById("dataCountDetail");
+  const powerCountDetail = document.getElementById("powerCountDetail");
+  const waterCountDetail = document.getElementById("waterCountDetail");
 
-  // Normalize small/default layers immediately; keep power raw until requested.
-  const dataCenters = normalizeCollection(rawData.dataCenters, normalizeDataCenter, MAX_DATA_CENTER_RECORDS);
-  const nuclearPlants = normalizeCollection(rawData.nuclearPlants, normalizePowerPlant, MAX_WATER_RECORDS);
-  const waterSources = normalizeCollection(rawData.waterSources, normalizeWaterSource, MAX_WATER_RECORDS);
-  const rawPowerPlants = Array.isArray(rawData.powerPlants)
-    ? rawData.powerPlants.slice(0, MAX_POWER_RECORDS)
-    : [];
+  let rawData = {};
+  let dataCenterHubs = [];
+  let dataCenters = [];
+  let nuclearPlants = [];
+  let waterSources = [];
+  let powerPlants = null;
+  let powerDataRequest = null;
+  const detailShardCache = new Map();
+  const dataCenterMarkerCache = new Map();
+  const dataCenterLineCache = new Map();
+  const hubMarkerCache = new Map();
+  const hubBuildCache = new Map();
+  const powerMarkerCache = new Map();
+  const reducedMotionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let dataCenterRenderKey = "";
+  let powerRenderKey = "";
+  let powerRefreshFrame = 0;
 
   const map = L.map("map", {
     maxBounds: US_BOUNDS,
@@ -62,7 +106,9 @@
     maxZoom: 10,
     zoomControl: false,
     preferCanvas: true,
-    scrollWheelZoom: true
+    keyboard: true,
+    keyboardPanDelta: 70,
+    scrollWheelZoom: false
   });
 
   map.fitBounds(US_BOUNDS, { padding: [20, 20] });
@@ -95,9 +141,14 @@
     })
   };
 
+  const dcHubLayer = L.layerGroup();
   const dcCluster = L.markerClusterGroup({
     showCoverageOnHover: false,
     spiderfyOnMaxZoom: true,
+    disableClusteringAtZoom: 8,
+    removeOutsideVisibleBounds: true,
+    animate: false,
+    animateAddingMarkers: false,
     maxClusterRadius: 44,
     chunkedLoading: true,
     chunkInterval: 120,
@@ -109,33 +160,69 @@
   const waterLayer = L.layerGroup();
   const connectorLayer = L.layerGroup();
 
-  let powerPlants = null;
   let powerCluster = null;
   let heatLayer = null;
   let refreshFrame = 0;
 
-  baseLayers.Color.addTo(map);
+  baseLayers.Light.addTo(map);
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.control.layers(baseLayers, null, { position: "bottomright", collapsed: true }).addTo(map);
 
-  map.addLayer(dcCluster);
-  map.addLayer(nuclearLayer);
-  map.addLayer(waterLayer);
-  map.addLayer(connectorLayer);
+  map.addLayer(dcHubLayer);
 
-  buildNuclearLayer();
-  buildWaterLayer();
-  refreshDataCenterLayer();
-  syncLayerToggles();
-  fitToData();
   bindControls();
+  showLoadingState();
+  initializeMapData();
 
-  if (rawData.generatedAt) {
-    map.attributionControl.addAttribution(`Generated ${safeText(rawData.generatedAt)}`);
+  async function initializeMapData() {
+    try {
+      const [summary, hubGeoJson, dataCenterGeoJson, nuclearGeoJson, waterGeoJson] = await Promise.all([
+        fetchJson(DATA_ENDPOINTS.summary, MAX_INITIAL_DATA_CHARS),
+        fetchJson(DATA_ENDPOINTS.dataCenterHubs, MAX_INITIAL_DATA_CHARS),
+        fetchJson(DATA_ENDPOINTS.dataCenters, MAX_INITIAL_DATA_CHARS),
+        fetchJson(DATA_ENDPOINTS.nuclearPlants, MAX_INITIAL_DATA_CHARS),
+        fetchJson(DATA_ENDPOINTS.waterSources, MAX_INITIAL_DATA_CHARS)
+      ]);
+
+      rawData = normalizeSummary(summary);
+      dataCenterHubs = normalizeGeoJsonCollection(hubGeoJson, normalizeDataCenterHub, MAX_DATA_CENTER_RECORDS);
+      dataCenters = normalizeGeoJsonCollection(dataCenterGeoJson, normalizeDataCenter, MAX_DATA_CENTER_RECORDS);
+      nuclearPlants = normalizeGeoJsonCollection(nuclearGeoJson, normalizePowerPlant, MAX_WATER_RECORDS);
+      waterSources = normalizeGeoJsonCollection(waterGeoJson, normalizeWaterSource, MAX_WATER_RECORDS);
+
+      updateGeneratedMetrics(rawData);
+      showOverviewState(rawData);
+      buildNuclearLayer();
+      buildWaterLayer();
+      refreshDataCenterLayer();
+      syncLayerToggles();
+      fitToData();
+
+      if (rawData.generatedAt) {
+        map.attributionControl.addAttribution(`Generated ${safeText(rawData.generatedAt)}`);
+      }
+      map.on("zoomend", () => {
+        refreshDataCenterLayer({ renderResults: false });
+        syncLayerToggles();
+      });
+      map.on("moveend", () => {
+        const visibility = layerVisibility();
+        if (visibility.connectors && visibility.dataMarkers) {
+          refreshDataCenterLayer({ renderResults: false });
+        }
+        if (visibility.power) {
+          schedulePowerLayerRefresh();
+        }
+      });
+    } catch (error) {
+      showDataError(error);
+    }
   }
 
   function bindControls() {
     searchInput.addEventListener("input", scheduleDataCenterRefresh);
+    resultsList.addEventListener("click", handleResultActivation);
+    resultsList.addEventListener("keydown", handleResultActivation);
 
     document.querySelectorAll("#statusFilters input").forEach((input) => {
       input.addEventListener("change", () => {
@@ -154,12 +241,289 @@
     });
   }
 
-  function normalizeCollection(collection, normalizer, maxRecords) {
-    if (!Array.isArray(collection)) return [];
-    return collection
+  async function fetchJson(path, maxChars) {
+    const url = new URL(path, window.location.href);
+    if (url.origin !== window.location.origin) {
+      throw new Error("Map data must be loaded from this site.");
+    }
+
+    const response = await fetch(url.href, {
+      cache: "force-cache",
+      credentials: "same-origin",
+      referrerPolicy: "strict-origin-when-cross-origin"
+    });
+
+    if (!response.ok) {
+      throw new Error("Map data is unavailable.");
+    }
+
+    const contentLength = Number(response.headers.get("Content-Length"));
+    if (Number.isFinite(contentLength) && contentLength > maxChars) {
+      throw new Error("Map data response is too large.");
+    }
+
+    const text = await response.text();
+    if (text.length > maxChars) {
+      throw new Error("Map data response is too large.");
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error("Map data is not valid JSON.");
+    }
+  }
+
+  function normalizeSummary(summary) {
+    const item = summary && typeof summary === "object" ? summary : {};
+    return {
+      generatedAt: safeText(item.generatedAt, 80),
+      recordCounts: item.recordCounts && typeof item.recordCounts === "object" ? item.recordCounts : {},
+      capacityMw: item.capacityMw && typeof item.capacityMw === "object" ? item.capacityMw : {},
+      dataFiles: item.dataFiles && typeof item.dataFiles === "object" ? item.dataFiles : {},
+      sources: Array.isArray(item.sources) ? item.sources.slice(0, 10) : []
+    };
+  }
+
+  function normalizeGeoJsonCollection(collection, normalizer, maxRecords) {
+    if (!collection || collection.type !== "FeatureCollection" || !Array.isArray(collection.features)) {
+      throw new Error("Map data has an invalid GeoJSON shape.");
+    }
+
+    return collection.features
       .slice(0, maxRecords)
+      .map(featureToRecord)
       .map(normalizer)
       .filter((item) => item.latitude !== null && item.longitude !== null);
+  }
+
+  function featureToRecord(feature) {
+    const item = feature && typeof feature === "object" ? feature : {};
+    const geometry = item.geometry && typeof item.geometry === "object" ? item.geometry : {};
+    const coordinates = Array.isArray(geometry.coordinates) ? geometry.coordinates : [];
+    const properties = item.properties && typeof item.properties === "object" ? item.properties : {};
+    return {
+      ...properties,
+      longitude: coordinates[0],
+      latitude: coordinates[1]
+    };
+  }
+
+  function updateGeneratedMetrics(summary) {
+    const counts = summary.recordCounts || {};
+    const capacity = summary.capacityMw || {};
+    const dataCenterCount = safeWholeNumber(counts.dataCenters);
+    const nuclearCount = safeWholeNumber(counts.nuclearPlants);
+    const powerCount = safeWholeNumber(counts.powerPlants);
+    const waterCount = safeWholeNumber(counts.waterSources);
+    const dataCapacity = safeNumber(capacity.dataCenters);
+    const nuclearCapacity = safeNumber(capacity.nuclearPlants);
+
+    if (summaryText) {
+      summaryText.textContent = [
+        `${numberFormat(dataCenterCount)} public data-center facility records`,
+        `${numberFormat(nuclearCount)} nuclear operating or pipeline records`,
+        `${numberFormat(powerCount)} power-plant records`,
+        `${numberFormat(waterCount)} named water-source references`
+      ].join(", ") + ".";
+    }
+
+    if (dataCapacityMetric) dataCapacityMetric.textContent = `${numberFormat(dataCapacity / 1000, 1)} GW`;
+    if (nuclearCapacityMetric) nuclearCapacityMetric.textContent = `${numberFormat(nuclearCapacity / 1000, 1)} GW`;
+    if (powerCountMetric) powerCountMetric.textContent = numberFormat(powerCount);
+    if (dataCountDetail) dataCountDetail.textContent = `${numberFormat(dataCenterCount)} public facility records`;
+    if (powerCountDetail) powerCountDetail.textContent = `${numberFormat(powerCount)} operating and planned records`;
+    if (waterCountDetail) waterCountDetail.textContent = `${numberFormat(waterCount)} named reference points`;
+  }
+
+  function showLoadingState() {
+    const title = createElement("div", "detail-title");
+    title.append(
+      createElement("h2", "", "Loading"),
+      createElement("span", "pill", "Data")
+    );
+    shownCount.textContent = "0";
+    renderResultMessage("Loading data-center results.", "Loading");
+    detailPanel.replaceChildren(
+      title,
+      createElement("div", "detail-body", "Loading map data.")
+    );
+  }
+
+  function showOverviewState(summary) {
+    const counts = summary.recordCounts || {};
+    const title = createElement("div", "detail-title");
+    const details = createElement("dl", "detail-list");
+
+    title.append(
+      createElement("h2", "", "National View"),
+      createElement("span", "pill", "Landscape")
+    );
+    appendDetailRows(details, [
+      ["Data centers", `${numberFormat(safeWholeNumber(counts.dataCenters))} public facility records`],
+      ["Power plants", `${numberFormat(safeWholeNumber(counts.powerPlants))} operating and planned records`],
+      ["Water", `${numberFormat(safeWholeNumber(counts.waterSources))} named reference points`]
+    ]);
+    detailPanel.replaceChildren(
+      title,
+      createElement(
+        "div",
+        "detail-body",
+        "Market-hub placeholders are no longer included. Facility markers use public records, and proximity lines compare each data center with its nearest nuclear site, power plant, and named water-source reference."
+      ),
+      details
+    );
+  }
+
+  function showDataError(error) {
+    const title = createElement("div", "detail-title");
+    title.append(
+      createElement("h2", "", "Data unavailable"),
+      createElement("span", "pill", "Error")
+    );
+    detailPanel.replaceChildren(
+      title,
+      createElement("div", "detail-body", "Map data could not be loaded. Start the Python map server and refresh the page.")
+    );
+    shownCount.textContent = "0";
+    renderResultMessage("Results unavailable.", "Error");
+    console.error(error);
+  }
+
+  function renderResultMessage(message, metaText) {
+    if (resultsMeta) resultsMeta.textContent = metaText;
+    if (!resultsList) return;
+    const item = createElement("li", "result-empty", message);
+    resultsList.replaceChildren(item);
+  }
+
+  function renderResultsList(sites) {
+    if (!resultsList) return;
+
+    if (!sites.length) {
+      shownCount.textContent = "0";
+      renderResultMessage("No data centers match the current filters.", "0 shown");
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    sites.forEach((site) => {
+      const item = document.createElement("li");
+      item.append(dataCenterResultButton(site));
+      fragment.append(item);
+    });
+
+    resultsList.replaceChildren(fragment);
+    if (resultsMeta) resultsMeta.textContent = `${numberFormat(sites.length)} shown`;
+  }
+
+  function dataCenterResultButton(site) {
+    const button = document.createElement("button");
+    const meta = [
+      site.status_group,
+      site.location || [site.city, site.state].filter(Boolean).join(", "),
+      site.capacity_label || mwLabel(site.capacity_mw)
+    ].filter(Boolean).join(" / ");
+    const context = [
+      nearestResultText(site, "nuclear", "Nuclear"),
+      nearestResultText(site, "power", "Power"),
+      nearestResultText(site, "water", "Water")
+    ].filter(Boolean).join(" / ");
+
+    button.type = "button";
+    button.className = "result-button";
+    button.dataset.siteKey = site.key;
+    button.setAttribute("aria-label", dataCenterAccessibleLabel(site));
+    button.append(createElement("span", "result-name", site.name || "Unnamed facility"));
+    if (meta) button.append(createElement("span", "result-meta", meta));
+    if (context) button.append(createElement("span", "result-context", context));
+    return button;
+  }
+
+  function handleResultActivation(event) {
+    if (event.type === "keydown" && !["Enter", " "].includes(event.key)) return;
+    const button = event.target.closest(".result-button");
+    if (!button || !resultsList.contains(button)) return;
+
+    const site = dataCenters.find((item) => item.key === button.dataset.siteKey);
+    if (!site) return;
+
+    event.preventDefault();
+    selectDataCenter(site);
+  }
+
+  function nearestResultText(site, kind, label) {
+    const name = site[`nearest_${kind}_name`];
+    const distance = site[`nearest_${kind}_distance_mi`];
+    if (!name || !Number.isFinite(distance)) return "";
+    return `${label}: ${name}, ${numberFormat(distance, 1)} mi`;
+  }
+
+  function dataCenterAccessibleLabel(site) {
+    return [
+      site.name || "Unnamed data-center facility",
+      `${site.status_group} status`,
+      site.location || [site.city, site.state].filter(Boolean).join(", "),
+      site.capacity_label || mwLabel(site.capacity_mw),
+      nearestResultText(site, "nuclear", "Nearest nuclear"),
+      nearestResultText(site, "power", "Nearest power"),
+      nearestResultText(site, "water", "Nearest water")
+    ].filter(Boolean).join(". ");
+  }
+
+  function selectDataCenter(site) {
+    const latLng = [site.latitude, site.longitude];
+    const targetZoom = Math.max(map.getZoom(), SELECTED_RESULT_ZOOM);
+    updateDetail(site, "data-center");
+    detailPanel.focus({ preventScroll: true });
+
+    const openSelected = () => {
+      refreshDataCenterLayer({ renderResults: false });
+      syncLayerToggles();
+      const marker = getDataCenterMarker(site);
+      const openPopup = () => {
+        marker.openPopup();
+        openRecordDetails(marker, site, "data-center");
+        detailPanel.focus({ preventScroll: true });
+      };
+
+      if (typeof dcCluster.zoomToShowLayer === "function") {
+        dcCluster.zoomToShowLayer(marker, openPopup);
+        return;
+      }
+
+      openPopup();
+    };
+
+    if (map.getZoom() < targetZoom || map.distance(map.getCenter(), L.latLng(latLng)) > 160) {
+      moveToFeature(latLng, targetZoom, openSelected);
+      return;
+    }
+
+    openSelected();
+  }
+
+  function moveToFeature(latLng, zoom, onComplete) {
+    let completed = false;
+    const distanceMeters = map.distance(map.getCenter(), L.latLng(latLng));
+    const complete = () => {
+      if (completed) return;
+      completed = true;
+      onComplete();
+    };
+
+    map.once("moveend", complete);
+    if (prefersReducedMotion() || distanceMeters > MAX_ANIMATED_MOVE_METERS) {
+      map.setView(latLng, zoom, { animate: false });
+      window.setTimeout(complete, 0);
+      return;
+    }
+
+    map.flyTo(latLng, zoom, { duration: 0.45 });
+  }
+
+  function prefersReducedMotion() {
+    return reducedMotionMedia.matches;
   }
 
   function normalizeDataCenter(site) {
@@ -200,7 +564,7 @@
     addNearestFields(normalized, site, "power");
     addNearestFields(normalized, site, "water");
 
-    normalized.searchText = [
+    const fallbackSearch = [
       normalized.name,
       normalized.developer,
       normalized.status,
@@ -219,7 +583,19 @@
       normalized.nearest_water_name,
       normalized.notes
     ].join(" ").toLowerCase();
+    normalized.searchText = safeText(site.search, 1600).toLowerCase() || fallbackSearch;
 
+    return normalized;
+  }
+
+  function normalizeDataCenterHub(hub) {
+    const normalized = normalizeSharedRecord(hub);
+    normalized.count = safeWholeNumber(hub.count);
+    normalized.capacity_mw = safeNumber(hub.capacity_mw);
+    normalized.states = safeText(hub.states, 80);
+    normalized.status_counts = hub.status_counts && typeof hub.status_counts === "object"
+      ? hub.status_counts
+      : {};
     return normalized;
   }
 
@@ -249,6 +625,9 @@
   function normalizeSharedRecord(record) {
     const item = record && typeof record === "object" ? record : {};
     return {
+      key: safeText(item.key || item.id || item.plant_id || item.name, 180),
+      detail_file: safeDataPath(item.detail_file),
+      detailLoaded: false,
       name: safeText(item.name),
       latitude: safeCoordinate(item.latitude, -90, 90),
       longitude: safeCoordinate(item.longitude, -180, 180),
@@ -256,6 +635,14 @@
       source_url: safeText(item.source_url),
       notes: safeText(item.notes)
     };
+  }
+
+  function safeDataPath(value) {
+    const text = safeText(value, 240).replace(/\\/g, "/");
+    if (!text.startsWith("data/details/") || !text.endsWith(".json") || text.includes("..")) {
+      return "";
+    }
+    return text;
   }
 
   function normalizeStatusGroup(status) {
@@ -284,6 +671,11 @@
   function safeNumber(value) {
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
+  }
+
+  function safeWholeNumber(value) {
+    const number = safeNumber(value);
+    return number === null || number < 0 ? 0 : Math.round(number);
   }
 
   function safeCoordinate(value, minimum, maximum) {
@@ -324,7 +716,7 @@
     return `${numberFormat(number, 1)} acres`;
   }
 
-  function markerSize(site, minimum = 24, maximum = 54) {
+  function markerSize(site, minimum = 30, maximum = 58) {
     const capacity = Number(site.capacity_mw);
     if (Number.isFinite(capacity) && capacity > 0) {
       return clamp(Math.round(minimum + Math.sqrt(capacity) * 0.36), minimum, maximum);
@@ -340,14 +732,14 @@
 
   function nuclearSize(plant) {
     const capacity = Number(plant.capacity_mw);
-    if (!Number.isFinite(capacity) || capacity <= 0) return 24;
-    return clamp(Math.round(23 + Math.sqrt(capacity) * 0.28), 24, 46);
+    if (!Number.isFinite(capacity) || capacity <= 0) return 30;
+    return clamp(Math.round(28 + Math.sqrt(capacity) * 0.25), 30, 50);
   }
 
   function powerSize(plant) {
     const capacity = Number(plant.capacity_mw);
-    if (!Number.isFinite(capacity) || capacity <= 0) return 14;
-    return clamp(Math.round(13 + Math.sqrt(capacity) * 0.09), 14, 30);
+    if (!Number.isFinite(capacity) || capacity <= 0) return 24;
+    return clamp(Math.round(22 + Math.sqrt(capacity) * 0.08), 24, 34);
   }
 
   function clamp(value, minimum, maximum) {
@@ -355,16 +747,60 @@
   }
 
   function markerHtml(size, markerClass, label, color, glow) {
-    return `<div class="map-marker ${markerClass}" style="--size:${size}px;--marker:${color};--glow:${glow}"><span class="marker-label">${label}</span></div>`;
+    const marker = createElement("div", ["map-marker", markerClass].filter(Boolean).join(" "));
+    marker.setAttribute("aria-hidden", "true");
+    marker.style.setProperty("--size", `${size}px`);
+    marker.style.setProperty("--marker", color);
+    marker.style.setProperty("--glow", glow);
+    marker.append(createElement("span", "marker-label", label));
+    return marker;
   }
 
   function clusterIcon(count, label) {
     const size = count > 1000 ? 66 : count > 100 ? 58 : count > 20 ? 50 : 44;
+    const wrapper = createElement("div", "cluster-icon");
+    wrapper.style.setProperty("--size", `${size}px`);
+    wrapper.append(
+      createElement("b", "", numberFormat(count)),
+      createElement("span", "", label)
+    );
     return L.divIcon({
-      html: `<div class="cluster-icon" style="--size:${size}px"><b>${count.toLocaleString()}</b><span>${label}</span></div>`,
+      html: wrapper,
       className: "cluster-wrap",
       iconSize: L.point(size, size)
     });
+  }
+
+  function hubIcon(hub) {
+    const count = Math.max(1, hub.count);
+    const size = count > 25 ? 70 : count > 12 ? 62 : count > 4 ? 54 : 46;
+    const wrapper = createElement("div", "hub-icon");
+    wrapper.style.setProperty("--size", `${size}px`);
+    wrapper.append(
+      createElement("b", "", numberFormat(count)),
+      createElement("span", "", "hub")
+    );
+    return L.divIcon({
+      html: wrapper,
+      className: "hub-wrap",
+      iconSize: L.point(size, size),
+      iconAnchor: [size / 2, size / 2],
+      popupAnchor: [0, -size / 2]
+    });
+  }
+
+  function hubPopup(hub) {
+    const wrapper = document.createElement("div");
+    wrapper.append(
+      createElement("div", "popup-kicker", "Data-center hub"),
+      createElement("h3", "popup-title", `${numberFormat(hub.count)} facilities`),
+      popupTable([
+        ["States", hub.states],
+        ["Capacity", mwLabel(hub.capacity_mw)],
+        ["Zoom", "Click the hub to load nearby facility markers."]
+      ])
+    );
+    return wrapper;
   }
 
   function dcIcon(site) {
@@ -386,7 +822,7 @@
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
       popupAnchor: [0, -size / 2],
-      html: markerHtml(size, "nuclear-marker", "N", "#21c55d", "rgba(33,197,93,0.28)")
+      html: markerHtml(size, "nuclear-marker", "N", "#047857", "rgba(4,120,87,0.28)")
     });
   }
 
@@ -403,13 +839,13 @@
   }
 
   function waterIcon() {
-    const size = 22;
+    const size = 28;
     return L.divIcon({
       className: "",
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
       popupAnchor: [0, -size / 2],
-      html: markerHtml(size, "water-marker", "W", "#0ea5e9", "rgba(14,165,233,0.24)")
+      html: markerHtml(size, "water-marker", "W", "#0369a1", "rgba(3,105,161,0.24)")
     });
   }
 
@@ -436,6 +872,124 @@
     } catch {
       return document.createTextNode("");
     }
+  }
+
+  function decorateMarker(marker, label) {
+    const accessibleName = safeText(label, 220);
+    marker.options.alt = accessibleName;
+    marker.on("add", () => {
+      const element = marker.getElement();
+      if (!element) return;
+      element.setAttribute("role", "button");
+      element.setAttribute("aria-label", accessibleName);
+      element.setAttribute("aria-describedby", "mapAccessibilityText");
+    });
+    return marker;
+  }
+
+  function hubAccessibleLabel(hub) {
+    return [
+      `${numberFormat(hub.count)} data-center facilities`,
+      hub.states ? `States: ${hub.states}` : "",
+      mwLabel(hub.capacity_mw)
+    ].filter(Boolean).join(". ");
+  }
+
+  function powerAccessibleLabel(plant, kind) {
+    const label = kind === "nuclear" ? "Nuclear site" : "Power plant";
+    return [
+      plant.name || label,
+      label,
+      plant.state,
+      mwLabel(plant.capacity_mw),
+      plant.statuses || plant.status_group
+    ].filter(Boolean).join(". ");
+  }
+
+  function waterAccessibleLabel(source) {
+    return [
+      source.name || "Water source reference",
+      "Water source reference",
+      source.type,
+      source.state
+    ].filter(Boolean).join(". ");
+  }
+
+  function detailNormalizer(kind) {
+    if (kind === "data-center") return normalizeDataCenter;
+    if (kind === "water") return normalizeWaterSource;
+    return normalizePowerPlant;
+  }
+
+  async function detailShard(path) {
+    if (!path) return {};
+    if (!detailShardCache.has(path)) {
+      detailShardCache.set(path, fetchJson(path, MAX_DETAIL_DATA_CHARS)
+        .then((payload) => {
+          if (!payload || typeof payload !== "object" || !payload.details || typeof payload.details !== "object") {
+            throw new Error("Map detail data has an invalid shape.");
+          }
+          return payload.details;
+        })
+        .catch((error) => {
+          detailShardCache.delete(path);
+          throw error;
+        }));
+    }
+    return detailShardCache.get(path);
+  }
+
+  async function loadDetailRecord(record, kind) {
+    if (!record || record.detailLoaded || !record.detail_file || !record.key) return record;
+    const details = await detailShard(record.detail_file);
+    const detail = details[record.key];
+    if (!detail || typeof detail !== "object") {
+      record.detailLoaded = true;
+      return record;
+    }
+
+    const normalized = detailNormalizer(kind)({
+      ...detail,
+      key: record.key,
+      detail_file: record.detail_file,
+      latitude: record.latitude,
+      longitude: record.longitude
+    });
+    Object.assign(record, normalized, { detailLoaded: true });
+    return record;
+  }
+
+  function loadingPopup(record, kind) {
+    const wrapper = document.createElement("div");
+    wrapper.append(
+      createElement("div", "popup-kicker", detailPillLabel(record, kind)),
+      createElement("h3", "popup-title", record.name || "Loading"),
+      createElement("div", "detail-body", "Loading details.")
+    );
+    return wrapper;
+  }
+
+  function popupForKind(record, kind) {
+    if (kind === "data-center") return dcPopup(record);
+    if (kind === "water") return waterPopup(record);
+    return powerPopup(record, kind);
+  }
+
+  function bindLazyPopup(marker, record, kind, maxWidth) {
+    marker.bindPopup(loadingPopup(record, kind), { maxWidth });
+    marker.on("click", () => openRecordDetails(marker, record, kind));
+    return marker;
+  }
+
+  function openRecordDetails(marker, record, kind) {
+    marker.setPopupContent(loadingPopup(record, kind));
+    updateDetail(record, kind);
+    loadDetailRecord(record, kind)
+      .then((fullRecord) => {
+        marker.setPopupContent(popupForKind(fullRecord, kind));
+        updateDetail(fullRecord, kind);
+      })
+      .catch(showDataError);
   }
 
   function popupTable(rows) {
@@ -681,8 +1235,94 @@
     );
   }
 
+  function layerVisibility() {
+    const zoom = map.getZoom();
+    return {
+      dataHubs: zoom <= VISIBILITY.dataHubMaxZoom,
+      dataMarkers: zoom >= VISIBILITY.dataMarkerMinZoom,
+      connectors: showConnectors.checked && zoom >= VISIBILITY.connectorMinZoom,
+      nuclear: showNuclear.checked && zoom >= VISIBILITY.nuclearMinZoom,
+      water: showWater.checked && zoom >= VISIBILITY.waterMinZoom,
+      power: showPower.checked && zoom >= VISIBILITY.powerMinZoom,
+      heat: showHeat.checked && zoom <= VISIBILITY.heatMaxZoom
+    };
+  }
+
+  function viewportKey(digits = 1) {
+    const bounds = map.getBounds();
+    const round = (value) => Number(value).toFixed(digits);
+    return [
+      map.getZoom(),
+      round(bounds.getSouth()),
+      round(bounds.getWest()),
+      round(bounds.getNorth()),
+      round(bounds.getEast())
+    ].join(":");
+  }
+
+  function dataCenterLayerKey(statuses, query, visibility) {
+    return [
+      Array.from(statuses).sort().join(","),
+      query,
+      visibility.dataHubs ? "hubs" : "no-hubs",
+      visibility.dataMarkers ? "markers" : "no-markers",
+      visibility.connectors && visibility.dataMarkers ? viewportKey(1) : "no-connectors"
+    ].join("|");
+  }
+
+  function recordsInMapBounds(records, padding) {
+    const bounds = map.getBounds().pad(padding);
+    return records.filter((record) => bounds.contains([record.latitude, record.longitude]));
+  }
+
   function siteMatchesSearch(site, query) {
     return !query || site.searchText.includes(query);
+  }
+
+  function filteredDataCenters(statuses, query) {
+    return dataCenters.filter((site) => statuses.has(site.status_group) && siteMatchesSearch(site, query));
+  }
+
+  function hubCacheKey(sites) {
+    return sites.map((site) => site.key).join("|");
+  }
+
+  function hubsForSites(sites) {
+    const fullUnfilteredSet = sites.length === dataCenters.length
+      && sites.every((site, index) => site === dataCenters[index]);
+    if (fullUnfilteredSet && dataCenterHubs.length) return dataCenterHubs;
+    const cacheKey = hubCacheKey(sites);
+    if (hubBuildCache.has(cacheKey)) return hubBuildCache.get(cacheKey);
+
+    const gridSize = 0.85;
+    const groups = new Map();
+    sites.forEach((site) => {
+      const key = `${Math.floor(site.latitude / gridSize)}:${Math.floor(site.longitude / gridSize)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(site);
+    });
+
+    const hubs = Array.from(groups.entries()).map(([key, group]) => {
+      const count = group.length;
+      const latitude = group.reduce((total, site) => total + site.latitude, 0) / count;
+      const longitude = group.reduce((total, site) => total + site.longitude, 0) / count;
+      const capacity = group.reduce((total, site) => total + (safeNumber(site.capacity_mw) || 0), 0);
+      const states = Array.from(new Set(group.map((site) => site.state).filter(Boolean))).slice(0, 4).join(", ");
+      return {
+        key,
+        name: `${count} facilities`,
+        latitude,
+        longitude,
+        count,
+        capacity_mw: capacity,
+        states
+      };
+    });
+    if (hubBuildCache.size > 24) {
+      hubBuildCache.clear();
+    }
+    hubBuildCache.set(cacheKey, hubs);
+    return hubs;
   }
 
   function scheduleDataCenterRefresh() {
@@ -693,40 +1333,75 @@
     });
   }
 
-  function refreshDataCenterLayer() {
+  function refreshDataCenterLayer(options = {}) {
+    const shouldRenderResults = options.renderResults !== false;
     const statuses = activeStatuses();
     const query = searchInput.value.trim().toLowerCase();
+    const visibility = layerVisibility();
+    const filtered = filteredDataCenters(statuses, query);
+    const renderKey = dataCenterLayerKey(statuses, query, visibility);
+
+    shownCount.textContent = filtered.length.toLocaleString();
+    if (shouldRenderResults) renderResultsList(filtered);
+    if (renderKey === dataCenterRenderKey) return;
+    dataCenterRenderKey = renderKey;
 
     dcCluster.clearLayers();
+    dcHubLayer.clearLayers();
     connectorLayer.clearLayers();
 
-    let shown = 0;
-    const markers = [];
+    if (visibility.dataHubs) {
+      const hubs = hubsForSites(filtered);
+      const hubMarkers = hubs.map((hub) => getHubMarker(hub));
+      hubMarkers.forEach((marker) => dcHubLayer.addLayer(marker));
+    }
 
-    dataCenters.forEach((site) => {
-      if (!statuses.has(site.status_group) || !siteMatchesSearch(site, query)) return;
+    if (visibility.dataMarkers) {
+      const markers = filtered.map((site) => getDataCenterMarker(site));
+      dcCluster.addLayers(markers);
 
-      shown += 1;
-      const marker = L.marker([site.latitude, site.longitude], {
-        icon: dcIcon(site),
-        title: site.name,
-        keyboard: true
-      })
-        .bindPopup(dcPopup(site), { maxWidth: 380 })
-        .bindTooltip(`${site.name} - ${site.status_group}`);
-
-      marker.on("click", () => updateDetail(site, "data-center"));
-      markers.push(marker);
-
-      if (showConnectors.checked) {
-        addProximityLine(site, "nuclear");
-        addProximityLine(site, "power");
-        addProximityLine(site, "water");
+      if (visibility.connectors) {
+        recordsInMapBounds(filtered, 0.25).forEach((site) => {
+          addProximityLine(site, "nuclear");
+          addProximityLine(site, "power");
+          addProximityLine(site, "water");
+        });
       }
-    });
+    }
+  }
 
-    dcCluster.addLayers(markers);
-    shownCount.textContent = shown.toLocaleString();
+  function getHubMarker(hub) {
+    if (hubMarkerCache.has(hub.key)) return hubMarkerCache.get(hub.key);
+    const marker = decorateMarker(L.marker([hub.latitude, hub.longitude], {
+      icon: hubIcon(hub),
+      title: `${numberFormat(hub.count)} data-center facilities`,
+      keyboard: true
+    })
+      .bindPopup(hubPopup(hub), { maxWidth: 320 })
+      .bindTooltip(`${numberFormat(hub.count)} facilities`), hubAccessibleLabel(hub));
+    marker.on("click", () => {
+      const targetZoom = Math.max(VISIBILITY.dataMarkerMinZoom, map.getZoom() + 2);
+      moveToFeature([hub.latitude, hub.longitude], targetZoom, () => {
+        refreshDataCenterLayer({ renderResults: false });
+        syncLayerToggles();
+      });
+    });
+    hubMarkerCache.set(hub.key, marker);
+    return marker;
+  }
+
+  function getDataCenterMarker(site) {
+    if (dataCenterMarkerCache.has(site.key)) return dataCenterMarkerCache.get(site.key);
+    const marker = decorateMarker(L.marker([site.latitude, site.longitude], {
+      icon: dcIcon(site),
+      title: site.name,
+      keyboard: true
+    })
+      .bindTooltip(`${site.name} - ${site.status_group}`), dataCenterAccessibleLabel(site));
+
+    bindLazyPopup(marker, site, "data-center", 380);
+    dataCenterMarkerCache.set(site.key, marker);
+    return marker;
   }
 
   function addProximityLine(site, kind) {
@@ -735,33 +1410,36 @@
     if (latitude === null || longitude === null) return;
 
     const style = proximityStyles[kind];
-    connectorLayer.addLayer(L.polyline(
+    const key = `${site.key}:${kind}`;
+    if (!dataCenterLineCache.has(key)) {
+      dataCenterLineCache.set(key, L.polyline(
       [
         [site.latitude, site.longitude],
         [latitude, longitude]
       ],
       {
         color: style.color,
-        weight: kind === "water" ? 1.1 : 1.3,
+        weight: kind === "water" ? 2 : 2.4,
         opacity: style.opacity,
         dashArray: style.dashArray,
         interactive: false
       }
-    ));
+      ));
+    }
+    connectorLayer.addLayer(dataCenterLineCache.get(key));
   }
 
   function buildNuclearLayer() {
     nuclearLayer.clearLayers();
     nuclearPlants.forEach((plant) => {
-      const marker = L.marker([plant.latitude, plant.longitude], {
+      const marker = decorateMarker(L.marker([plant.latitude, plant.longitude], {
         icon: nuclearIcon(plant),
         title: plant.name,
         keyboard: true
       })
-        .bindPopup(powerPopup(plant, "nuclear"), { maxWidth: 360 })
-        .bindTooltip(`${plant.name} - ${mwLabel(plant.capacity_mw)}`);
+        .bindTooltip(`${plant.name} - ${mwLabel(plant.capacity_mw)}`), powerAccessibleLabel(plant, "nuclear"));
 
-      marker.on("click", () => updateDetail(plant, "nuclear"));
+      bindLazyPopup(marker, plant, "nuclear", 360);
       nuclearLayer.addLayer(marker);
     });
   }
@@ -769,31 +1447,40 @@
   function buildWaterLayer() {
     waterLayer.clearLayers();
     waterSources.forEach((source) => {
-      const marker = L.marker([source.latitude, source.longitude], {
+      const marker = decorateMarker(L.marker([source.latitude, source.longitude], {
         icon: waterIcon(source),
         title: source.name,
         keyboard: true
       })
-        .bindPopup(waterPopup(source), { maxWidth: 340 })
-        .bindTooltip(`${source.name} - ${source.type}`);
+        .bindTooltip(`${source.name} - ${source.type}`), waterAccessibleLabel(source));
 
-      marker.on("click", () => updateDetail(source, "water"));
+      bindLazyPopup(marker, source, "water", 340);
       waterLayer.addLayer(marker);
     });
   }
 
-  function getPowerPlants() {
+  async function getPowerPlants() {
     if (powerPlants) return powerPlants;
-    powerPlants = normalizeCollection(rawPowerPlants, normalizePowerPlant, MAX_POWER_RECORDS);
+    if (!powerDataRequest) {
+      powerDataRequest = fetchJson(DATA_ENDPOINTS.powerPlants, MAX_POWER_DATA_CHARS)
+        .then((payload) => normalizeGeoJsonCollection(payload, normalizePowerPlant, MAX_POWER_RECORDS))
+        .catch((error) => {
+          powerDataRequest = null;
+          throw error;
+        });
+    }
+    powerPlants = await powerDataRequest;
     return powerPlants;
   }
 
-  function getPowerCluster() {
+  function ensurePowerCluster() {
     if (powerCluster) return powerCluster;
-
     powerCluster = L.markerClusterGroup({
       showCoverageOnHover: false,
       spiderfyOnMaxZoom: false,
+      removeOutsideVisibleBounds: true,
+      animate: false,
+      animateAddingMarkers: false,
       maxClusterRadius: 38,
       chunkedLoading: true,
       chunkInterval: 100,
@@ -801,35 +1488,69 @@
       iconCreateFunction: (cluster) => clusterIcon(cluster.getChildCount(), "power")
     });
 
-    const markers = getPowerPlants().map((plant) => {
-      const marker = L.marker([plant.latitude, plant.longitude], {
-        icon: powerIcon(plant),
-        title: plant.name,
-        keyboard: true
-      })
-        .bindPopup(powerPopup(plant, "power"), { maxWidth: 360 })
-        .bindTooltip(`${plant.name} - ${mwLabel(plant.capacity_mw)}`);
-
-      marker.on("click", () => updateDetail(plant, "power"));
-      return marker;
-    });
-
-    powerCluster.addLayers(markers);
     return powerCluster;
   }
 
-  function syncLayerToggles() {
-    toggleMapLayer(nuclearLayer, showNuclear.checked);
-    toggleMapLayer(waterLayer, showWater.checked);
-    toggleMapLayer(connectorLayer, showConnectors.checked);
+  function getPowerMarker(plant) {
+    if (powerMarkerCache.has(plant.key)) return powerMarkerCache.get(plant.key);
+    const marker = decorateMarker(L.marker([plant.latitude, plant.longitude], {
+      icon: powerIcon(plant),
+      title: plant.name,
+      keyboard: true
+    })
+      .bindTooltip(`${plant.name} - ${mwLabel(plant.capacity_mw)}`), powerAccessibleLabel(plant, "power"));
 
-    if (showPower.checked) {
-      toggleMapLayer(getPowerCluster(), true);
-    } else if (powerCluster) {
-      toggleMapLayer(powerCluster, false);
+    bindLazyPopup(marker, plant, "power", 360);
+    powerMarkerCache.set(plant.key, marker);
+    return marker;
+  }
+
+  function schedulePowerLayerRefresh() {
+    if (powerRefreshFrame) cancelAnimationFrame(powerRefreshFrame);
+    powerRefreshFrame = requestAnimationFrame(() => {
+      powerRefreshFrame = 0;
+      refreshPowerLayer().catch(showDataError);
+    });
+  }
+
+  async function refreshPowerLayer() {
+    const visibility = layerVisibility();
+    if (!visibility.power) {
+      if (powerCluster) toggleMapLayer(powerCluster, false);
+      powerRenderKey = "";
+      return;
     }
 
-    if (showHeat.checked) {
+    const cluster = ensurePowerCluster();
+    toggleMapLayer(cluster, true);
+
+    const plants = await getPowerPlants();
+    const visiblePlants = recordsInMapBounds(plants, POWER_BOUNDS_PADDING)
+      .slice(0, MAX_RENDERED_POWER_MARKERS);
+    const renderKey = `${viewportKey(2)}|${visiblePlants.map((plant) => plant.key).join(",")}`;
+    if (renderKey === powerRenderKey) return;
+
+    powerRenderKey = renderKey;
+    cluster.clearLayers();
+    cluster.addLayers(visiblePlants.map((plant) => getPowerMarker(plant)));
+  }
+
+  function syncLayerToggles() {
+    const visibility = layerVisibility();
+    toggleMapLayer(dcHubLayer, visibility.dataHubs);
+    toggleMapLayer(dcCluster, visibility.dataMarkers);
+    toggleMapLayer(connectorLayer, visibility.connectors && visibility.dataMarkers);
+    toggleMapLayer(nuclearLayer, visibility.nuclear);
+    toggleMapLayer(waterLayer, visibility.water);
+
+    if (visibility.power) {
+      schedulePowerLayerRefresh();
+    } else if (powerCluster) {
+      toggleMapLayer(powerCluster, false);
+      powerRenderKey = "";
+    }
+
+    if (visibility.heat) {
       toggleMapLayer(getHeatLayer(), true);
     } else if (heatLayer) {
       toggleMapLayer(heatLayer, false);

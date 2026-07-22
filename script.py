@@ -6,13 +6,14 @@ The current workflow is data-first:
 2. Read operating and planned power generators from the EIA-860M workbook.
 3. Read named water-source reference points from water_sources.csv.
 4. Remove market-hub placeholders, compute nearest nuclear/power/water context,
-   then write CSV exports plus map-data.js for the browser map.
+   then write CSV exports plus JSON/GeoJSON files for the browser map.
 
 How to use:
     python script.py
     python script.py --refresh-compute-atlas
     python script.py --compute-atlas-json compute-atlas-data-centers.json
     python script.py --water-sources water_sources.csv
+    python script.py --output-dir data
 
 This script uses only the Python standard library.
 """
@@ -22,15 +23,16 @@ from __future__ import annotations
 import argparse
 import csv
 import datetime as dt
+import hashlib
 import json
 import math
 import posixpath
 import re
-import ssl
+import sqlite3
 import sys
 import warnings
 import xml.etree.ElementTree as ET
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlparse
@@ -45,6 +47,23 @@ EIA_860M_PAGE = "https://www.eia.gov/electricity/data/eia860m/"
 EIA_860M_PAGE_ALT = "https://www.eia.gov/electricity/data/eia860m/index.php"
 USGS_NHD_URL = "https://www.usgs.gov/national-hydrography/national-hydrography-dataset"
 NATURAL_EARTH_URL = "https://www.naturalearthdata.com/"
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+MAX_API_RESPONSE_BYTES = 35 * 1024 * 1024
+MAX_JSON_FILE_BYTES = 35 * 1024 * 1024
+MAX_CSV_FILE_BYTES = 15 * 1024 * 1024
+MAX_XLSX_FILE_BYTES = 150 * 1024 * 1024
+MAX_XLSX_MEMBER_BYTES = 80 * 1024 * 1024
+MAX_XLSX_UNCOMPRESSED_BYTES = 250 * 1024 * 1024
+MAX_API_FACILITY_RECORDS = 100_000
+CSV_FORMULA_PREFIXES = ("=", "+", "-", "@")
+
+ALLOWED_UPSTREAM_HOSTS = {
+    "compute-atlas.com",
+    "www.compute-atlas.com",
+    "eia.gov",
+    "www.eia.gov",
+}
 
 DATA_CENTER_FIELDS = [
     "id",
@@ -165,12 +184,160 @@ NUMERIC_FIELDS = {
     "source_count",
 }
 
+SQLITE_TABLES = {
+    "data_centers": DATA_CENTER_FIELDS,
+    "power_plants": POWER_FIELDS,
+    "nuclear_plants": NUCLEAR_FIELDS,
+    "water_sources": WATER_FIELDS,
+}
+
+SQLITE_INDEXES = {
+    "data_centers": [
+        ("state", "status_group"),
+        ("latitude", "longitude"),
+        ("nearest_nuclear_distance_mi",),
+        ("nearest_power_distance_mi",),
+        ("nearest_water_distance_mi",),
+    ],
+    "power_plants": [
+        ("state", "status_group"),
+        ("latitude", "longitude"),
+        ("energy_sources",),
+    ],
+    "nuclear_plants": [
+        ("state", "status_group"),
+        ("latitude", "longitude"),
+    ],
+    "water_sources": [
+        ("state",),
+        ("latitude", "longitude"),
+    ],
+}
+
+GEOJSON_COORDINATE_DECIMALS = {
+    "data-center": 4,
+    "nuclear": 4,
+    "power": 3,
+    "water": 4,
+    "data-center-hub": 3,
+}
+
+DETAIL_SHARD_COUNTS = {
+    "data-centers": 8,
+    "power-plants": 64,
+    "nuclear-plants": 1,
+    "water-sources": 1,
+}
+
+DATA_CENTER_SEARCH_FIELDS = [
+    "name",
+    "developer",
+    "status",
+    "status_group",
+    "category",
+    "location",
+    "city",
+    "county",
+    "state",
+    "powered_by",
+    "energy_source",
+    "utility",
+    "water_cooling_type",
+    "nearest_nuclear_name",
+    "nearest_power_name",
+    "nearest_water_name",
+]
+
 XLSX_MAIN_NS = {"main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 XLSX_REL_NS = {"rel": "http://schemas.openxmlformats.org/package/2006/relationships"}
 XLSX_OFFICE_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 
 
-def fetch_url(url: str, timeout: int = 60, binary: bool = False) -> str | bytes:
+def project_path(path: Path) -> Path:
+    candidate = path if path.is_absolute() else PROJECT_ROOT / path
+    resolved = candidate.resolve()
+    try:
+        resolved.relative_to(PROJECT_ROOT)
+    except ValueError as exc:
+        raise ValueError("Input and output paths must stay inside the project directory.") from exc
+    return resolved
+
+
+def resolve_output_dir(path: Path) -> Path:
+    resolved = project_path(path)
+    resolved.mkdir(parents=True, exist_ok=True)
+    return resolved
+
+
+def resolve_output_file(path: Path, allowed_suffixes: set[str], label: str) -> Path:
+    resolved = project_path(path)
+    if resolved.suffix.lower() not in allowed_suffixes:
+        raise ValueError(f"{label} must use one of these suffixes: {', '.join(sorted(allowed_suffixes))}.")
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    return resolved
+
+
+def validate_existing_file(path: Path, allowed_suffixes: set[str], max_bytes: int, label: str) -> Path:
+    resolved = project_path(path)
+    if resolved.suffix.lower() not in allowed_suffixes:
+        raise ValueError(f"{label} must use one of these suffixes: {', '.join(sorted(allowed_suffixes))}.")
+    if not resolved.is_file():
+        raise FileNotFoundError(f"{label} not found.")
+    size = resolved.stat().st_size
+    if size > max_bytes:
+        raise ValueError(f"{label} exceeds the allowed size limit.")
+    return resolved
+
+
+def validate_upstream_url(url: str) -> None:
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" or host not in ALLOWED_UPSTREAM_HOSTS:
+        raise ValueError("Only approved HTTPS data-source URLs are allowed.")
+
+
+def validate_zip_members(workbook: ZipFile) -> None:
+    total_uncompressed = 0
+    for member in workbook.infolist():
+        member_path = PurePosixPath(member.filename)
+        if member_path.is_absolute() or ".." in member_path.parts:
+            raise ValueError("Workbook contains an invalid internal file path.")
+        if member.file_size > MAX_XLSX_MEMBER_BYTES:
+            raise ValueError("Workbook contains an oversized member.")
+        total_uncompressed += member.file_size
+        if total_uncompressed > MAX_XLSX_UNCOMPRESSED_BYTES:
+            raise ValueError("Workbook expands beyond the allowed size limit.")
+
+
+def load_json_payload(path: Path, label: str) -> dict[str, Any]:
+    validated = validate_existing_file(path, {".json"}, MAX_JSON_FILE_BYTES, label)
+    try:
+        payload = json.loads(validated.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} is not valid JSON.") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"{label} must contain a JSON object.")
+    return payload
+
+
+def facility_list(payload: dict[str, Any], label: str) -> list[dict[str, Any]]:
+    facilities = payload.get("facilities", [])
+    if not isinstance(facilities, list):
+        raise ValueError(f"{label} payload did not contain a facilities list.")
+    if len(facilities) > MAX_API_FACILITY_RECORDS:
+        raise ValueError(f"{label} payload contains too many facility records.")
+    if not all(isinstance(item, dict) for item in facilities):
+        raise ValueError(f"{label} payload contains invalid facility records.")
+    return facilities
+
+
+def fetch_url(
+    url: str,
+    timeout: int = 60,
+    binary: bool = False,
+    max_bytes: int = MAX_API_RESPONSE_BYTES,
+) -> str | bytes:
+    validate_upstream_url(url)
     request = Request(
         url,
         headers={
@@ -182,18 +349,20 @@ def fetch_url(url: str, timeout: int = 60, binary: bool = False) -> str | bytes:
     )
     try:
         with urlopen(request, timeout=timeout) as response:
-            payload = response.read()
-    except ssl.SSLError:
-        context = ssl._create_unverified_context()
-        with urlopen(request, timeout=timeout, context=context) as response:
-            payload = response.read()
-    except URLError as exc:
-        reason = getattr(exc, "reason", None)
-        if not isinstance(reason, ssl.SSLError):
-            raise
-        context = ssl._create_unverified_context()
-        with urlopen(request, timeout=timeout, context=context) as response:
-            payload = response.read()
+            content_length = response.headers.get("Content-Length")
+            if content_length:
+                try:
+                    response_size = int(content_length)
+                except ValueError:
+                    raise ValueError("Upstream response reported an invalid size.") from None
+                if response_size > max_bytes:
+                    raise ValueError("Upstream response exceeds the allowed size limit.")
+            payload = response.read(max_bytes + 1)
+    except URLError:
+        raise
+
+    if len(payload) > max_bytes:
+        raise ValueError("Upstream response exceeds the allowed size limit.")
 
     return payload if binary else payload.decode("utf-8", errors="replace")
 
@@ -232,27 +401,30 @@ def find_newest_cached_workbook(cache_dir: Path) -> Path | None:
 
 
 def download_eia_workbook(cache_dir: Path, refresh: bool = False) -> tuple[str, str, Path, bool]:
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_dir = resolve_output_dir(cache_dir)
     try:
         label, url = find_latest_eia860m_workbook()
     except (HTTPError, URLError, TimeoutError, OSError, RuntimeError) as exc:
         cached = find_newest_cached_workbook(cache_dir)
         if cached:
+            validate_existing_file(cached, {".xlsx"}, MAX_XLSX_FILE_BYTES, "Cached EIA-860M workbook")
+            cached_url = urljoin(EIA_860M_PAGE_ALT, f"xls/{cached.name}")
             warnings.warn(
                 f"Could not reach EIA-860M ({exc}). Using cached workbook {cached.name}.",
                 RuntimeWarning,
                 stacklevel=2,
             )
-            return label_from_workbook_filename(cached), EIA_860M_PAGE, cached, True
+            return label_from_workbook_filename(cached), cached_url, cached, True
         raise
 
     filename = Path(urlparse(url).path).name
-    workbook_path = cache_dir / filename
+    workbook_path = resolve_output_file(cache_dir / filename, {".xlsx"}, "EIA-860M workbook")
     if refresh or not workbook_path.exists():
-        payload = fetch_url(url, timeout=120, binary=True)
+        payload = fetch_url(url, timeout=120, binary=True, max_bytes=MAX_XLSX_FILE_BYTES)
         assert isinstance(payload, bytes)
         workbook_path.write_bytes(payload)
 
+    validate_existing_file(workbook_path, {".xlsx"}, MAX_XLSX_FILE_BYTES, "EIA-860M workbook")
     return label, url, workbook_path, False
 
 
@@ -309,7 +481,9 @@ def xlsx_cell_value(cell: ET.Element, shared_strings: list[str]) -> str:
 
 
 def read_xlsx_sheet(path: Path, sheet_name: str, header_row: int = 3) -> list[dict[str, str]]:
+    path = validate_existing_file(path, {".xlsx"}, MAX_XLSX_FILE_BYTES, "EIA-860M workbook")
     with ZipFile(path) as workbook:
+        validate_zip_members(workbook)
         shared_strings = read_shared_strings(workbook)
         sheet_paths = workbook_sheet_paths(workbook)
         if sheet_name not in sheet_paths:
@@ -410,24 +584,31 @@ def first_source(facility: dict[str, Any]) -> tuple[str, str, int]:
 
 
 def load_compute_atlas_records(path: Path, refresh: bool = False) -> list[dict[str, Any]]:
+    path = resolve_output_file(path, {".json"}, "Compute Atlas data-center JSON")
     if refresh or not path.exists():
-        payload = fetch_url(COMPUTE_ATLAS_DATA_CENTERS_API, timeout=120, binary=False)
+        payload = fetch_url(
+            COMPUTE_ATLAS_DATA_CENTERS_API,
+            timeout=120,
+            binary=False,
+            max_bytes=MAX_JSON_FILE_BYTES,
+        )
         assert isinstance(payload, str)
         path.write_text(payload, encoding="utf-8")
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    facilities = payload.get("facilities", [])
-    if not isinstance(facilities, list):
-        raise ValueError("Compute Atlas payload did not contain a facilities list.")
-    return facilities
+    return facility_list(load_json_payload(path, "Compute Atlas data-center JSON"), "Compute Atlas data-center")
 
 
 def load_compute_atlas_power_records(path: Path, refresh: bool = False) -> list[dict[str, Any]]:
+    path = resolve_output_file(path, {".json"}, "Compute Atlas facilities JSON")
     if refresh or not path.exists():
-        payload = fetch_url(COMPUTE_ATLAS_ALL_FACILITIES_API, timeout=120, binary=False)
+        payload = fetch_url(
+            COMPUTE_ATLAS_ALL_FACILITIES_API,
+            timeout=120,
+            binary=False,
+            max_bytes=MAX_JSON_FILE_BYTES,
+        )
         assert isinstance(payload, str)
         path.write_text(payload, encoding="utf-8")
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    facilities = payload.get("facilities", [])
+    facilities = facility_list(load_json_payload(path, "Compute Atlas facilities JSON"), "Compute Atlas facilities")
     return [
         item for item in facilities
         if isinstance(item, dict) and item.get("facilityType") == "power_generation"
@@ -611,12 +792,19 @@ def normalize_compute_power_records(facilities: list[dict[str, Any]]) -> list[di
 
 
 def load_water_sources(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
+    if not project_path(path).exists():
         raise FileNotFoundError(
             f"Water source CSV not found: {path}. Create one with columns {WATER_FIELDS}."
         )
+    path = validate_existing_file(path, {".csv"}, MAX_CSV_FILE_BYTES, "Water source CSV")
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
-        records = list(csv.DictReader(handle))
+        reader = csv.DictReader(handle)
+        if not reader.fieldnames:
+            raise ValueError("Water source CSV must include a header row.")
+        missing = [field for field in WATER_FIELDS if field not in reader.fieldnames]
+        if missing:
+            raise ValueError(f"Water source CSV is missing required fields: {', '.join(missing)}.")
+        records = list(reader)
     water_sources: list[dict[str, Any]] = []
     for record in records:
         latitude = safe_float(record.get("latitude"))
@@ -710,12 +898,156 @@ def total_capacity(records: Iterable[dict[str, Any]]) -> float:
     return sum(safe_float(record.get("capacity_mw")) or 0 for record in records)
 
 
+def csv_safe_value(value: Any, field: str) -> Any:
+    if field in NUMERIC_FIELDS or isinstance(value, (int, float, bool)) or value is None:
+        return value
+    text = clean_text(value)
+    return f"'{text}" if text.startswith(CSV_FORMULA_PREFIXES) else text
+
+
+def csv_safe_record(record: dict[str, Any], fieldnames: list[str]) -> dict[str, Any]:
+    return {field: csv_safe_value(record.get(field), field) for field in fieldnames}
+
+
 def write_csv(path: Path, records: list[dict[str, Any]], fieldnames: list[str]) -> None:
+    path = resolve_output_file(path, {".csv"}, "CSV export")
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         for record in records:
-            writer.writerow(record)
+            writer.writerow(csv_safe_record(record, fieldnames))
+
+
+def quote_identifier(identifier: str) -> str:
+    if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", identifier):
+        raise ValueError("Invalid SQLite identifier.")
+    return f'"{identifier}"'
+
+
+def sqlite_column_definition(field: str) -> str:
+    if field == "is_nuclear":
+        sql_type = "INTEGER"
+    elif field in NUMERIC_FIELDS:
+        sql_type = "REAL"
+    else:
+        sql_type = "TEXT"
+    return f"{quote_identifier(field)} {sql_type}"
+
+
+def sqlite_value(record: dict[str, Any], field: str) -> Any:
+    if field == "is_nuclear":
+        value = record.get(field)
+        if isinstance(value, bool):
+            return 1 if value else 0
+        return 1 if clean_text(value).lower() in {"true", "1", "yes"} else 0
+    if field in NUMERIC_FIELDS:
+        return safe_float(record.get(field))
+    return clean_text(record.get(field))
+
+
+def write_sqlite_table(
+    connection: sqlite3.Connection,
+    table: str,
+    records: list[dict[str, Any]],
+    fields: list[str],
+) -> None:
+    table_name = quote_identifier(table)
+    columns = ", ".join(sqlite_column_definition(field) for field in fields)
+    connection.execute(f"DROP TABLE IF EXISTS {table_name}")
+    connection.execute(f"CREATE TABLE {table_name} ({columns})")
+
+    placeholders = ", ".join("?" for _ in fields)
+    quoted_fields = ", ".join(quote_identifier(field) for field in fields)
+    rows = [
+        tuple(sqlite_value(record, field) for field in fields)
+        for record in records
+    ]
+    connection.executemany(
+        f"INSERT INTO {table_name} ({quoted_fields}) VALUES ({placeholders})",
+        rows,
+    )
+
+
+def create_sqlite_indexes(connection: sqlite3.Connection) -> None:
+    for table, indexes in SQLITE_INDEXES.items():
+        for columns in indexes:
+            index_name = quote_identifier(f"idx_{table}_{'_'.join(columns)}")
+            table_name = quote_identifier(table)
+            quoted_columns = ", ".join(quote_identifier(column) for column in columns)
+            connection.execute(f"CREATE INDEX {index_name} ON {table_name} ({quoted_columns})")
+
+
+def write_sqlite_database(
+    path: Path,
+    data_centers: list[dict[str, Any]],
+    nuclear_plants: list[dict[str, Any]],
+    power_plants: list[dict[str, Any]],
+    water_sources: list[dict[str, Any]],
+    generated_at: str,
+    input_files: list[dict[str, Any]],
+    output_files: list[dict[str, Any]],
+) -> Path:
+    path = resolve_output_file(path, {".db", ".sqlite", ".sqlite3"}, "SQLite test database")
+    temp_path = path.with_name(f"{path.name}.tmp")
+    if temp_path.exists():
+        temp_path.unlink()
+
+    table_records = {
+        "data_centers": data_centers,
+        "power_plants": power_plants,
+        "nuclear_plants": nuclear_plants,
+        "water_sources": water_sources,
+    }
+
+    connection = sqlite3.connect(temp_path)
+    try:
+        with connection:
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.execute("PRAGMA trusted_schema = OFF")
+            connection.execute("PRAGMA user_version = 1")
+            for table, fields in SQLITE_TABLES.items():
+                write_sqlite_table(connection, table, table_records[table], fields)
+
+            create_sqlite_indexes(connection)
+            connection.execute("CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+            connection.executemany(
+                "INSERT INTO metadata (key, value) VALUES (?, ?)",
+                [
+                    ("generated_at", generated_at),
+                    ("format", "sqlite-test-backend"),
+                    ("data_centers", str(len(data_centers))),
+                    ("power_plants", str(len(power_plants))),
+                    ("nuclear_plants", str(len(nuclear_plants))),
+                    ("water_sources", str(len(water_sources))),
+                ],
+            )
+            connection.execute(
+                "CREATE TABLE change_records (role TEXT NOT NULL, label TEXT NOT NULL, file TEXT NOT NULL, bytes INTEGER NOT NULL, sha256 TEXT NOT NULL)"
+            )
+            connection.executemany(
+                "INSERT INTO change_records (role, label, file, bytes, sha256) VALUES (?, ?, ?, ?, ?)",
+                [
+                    (
+                        role,
+                        clean_text(item["label"]),
+                        clean_text(item["file"]),
+                        int(item["bytes"]),
+                        clean_text(item["sha256"]),
+                    )
+                    for role, files in [("input", input_files), ("output", output_files)]
+                    for item in files
+                ],
+            )
+            connection.execute("ANALYZE")
+    finally:
+        connection.close()
+
+    temp_path.replace(path)
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
+    return path
 
 
 def value_for_json(value: Any, field: str) -> Any:
@@ -741,49 +1073,364 @@ def records_for_json(records: list[dict[str, Any]], fields: list[str]) -> list[d
     return compact
 
 
-def json_for_html(data: Any) -> str:
-    return json.dumps(data, ensure_ascii=True, allow_nan=False, separators=(",", ":")).replace("</", "<\\/")
+def rounded_coordinate(value: float, layer: str) -> float:
+    return round(value, GEOJSON_COORDINATE_DECIMALS.get(layer, 4))
 
 
-def write_map_data_js(
-    path: Path,
+def compact_search_text(record: dict[str, Any]) -> str:
+    return " ".join(
+        clean_text(record.get(field), 160)
+        for field in DATA_CENTER_SEARCH_FIELDS
+        if clean_text(record.get(field), 160)
+    ).lower()
+
+
+def stable_hash(value: str, length: int = 12) -> str:
+    return hashlib.sha1(value.encode("utf-8")).hexdigest()[:length]
+
+
+def record_key(record: dict[str, Any], layer: str) -> str:
+    if layer == "data-center":
+        identifier = clean_text(record.get("id"), 120)
+        if identifier:
+            return identifier
+    elif layer in {"power", "nuclear"}:
+        plant_id = clean_text(record.get("plant_id"), 80)
+        basis = "|".join(
+            clean_text(record.get(field), 160)
+            for field in ["plant_id", "name", "state", "latitude", "longitude", "status_group"]
+        )
+        return f"{plant_id or 'plant'}-{stable_hash(basis, 8)}"
+
+    basis = "|".join(
+        clean_text(record.get(field), 160)
+        for field in ["name", "type", "state", "latitude", "longitude"]
+    )
+    return f"{layer}-{stable_hash(basis, 10)}"
+
+
+def detail_file_for_key(stem: str, key: str) -> str:
+    shard_count = DETAIL_SHARD_COUNTS[stem]
+    if shard_count == 1:
+        return f"data/details/{stem}.json"
+    bucket = int(stable_hash(key, 8), 16) % shard_count
+    return f"data/details/{stem}-{bucket:02d}.json"
+
+
+def common_marker_properties(record: dict[str, Any], layer: str, stem: str) -> dict[str, Any]:
+    key = record_key(record, layer)
+    return {
+        "key": key,
+        "layer": layer,
+        "name": clean_text(record.get("name")),
+        "state": clean_text(record.get("state"), 10),
+        "detail_file": detail_file_for_key(stem, key),
+    }
+
+
+def marker_properties(record: dict[str, Any], layer: str, stem: str) -> dict[str, Any]:
+    properties = common_marker_properties(record, layer, stem)
+    if layer == "data-center":
+        properties.update({
+            "id": clean_text(record.get("id"), 160),
+            "status": clean_text(record.get("status")),
+            "status_group": clean_text(record.get("status_group")),
+            "capacity_mw": value_for_json(record.get("capacity_mw"), "capacity_mw"),
+            "capacity_label": clean_text(record.get("capacity_label")),
+            "landscape_weight": value_for_json(record.get("landscape_weight"), "landscape_weight"),
+            "search": compact_search_text(record),
+        })
+        for kind in ["nuclear", "power", "water"]:
+            lat_field = f"nearest_{kind}_latitude"
+            lon_field = f"nearest_{kind}_longitude"
+            latitude = safe_float(record.get(lat_field))
+            longitude = safe_float(record.get(lon_field))
+            if latitude is not None and longitude is not None:
+                properties[lat_field] = rounded_coordinate(latitude, "data-center")
+                properties[lon_field] = rounded_coordinate(longitude, "data-center")
+        return {key: value for key, value in properties.items() if value not in ("", None)}
+
+    if layer in {"power", "nuclear"}:
+        properties.update({
+            "plant_id": clean_text(record.get("plant_id"), 80),
+            "capacity_mw": value_for_json(record.get("capacity_mw"), "capacity_mw"),
+            "status_group": clean_text(record.get("status_group")),
+            "energy_sources": clean_text(record.get("energy_sources"), 80),
+            "type": clean_text(record.get("type") or "Power plant"),
+            "is_nuclear": bool(record.get("is_nuclear")),
+        })
+        return {key: value for key, value in properties.items() if value not in ("", None)}
+
+    properties.update({
+        "type": clean_text(record.get("type")),
+    })
+    return {key: value for key, value in properties.items() if value not in ("", None)}
+
+
+def feature_for_record(record: dict[str, Any], layer: str, stem: str) -> dict[str, Any] | None:
+    latitude = safe_float(record.get("latitude"))
+    longitude = safe_float(record.get("longitude"))
+    if latitude is None or longitude is None:
+        return None
+    if latitude < -90 or latitude > 90 or longitude < -180 or longitude > 180:
+        return None
+
+    return {
+        "type": "Feature",
+        "geometry": {
+            "type": "Point",
+            "coordinates": [
+                rounded_coordinate(longitude, layer),
+                rounded_coordinate(latitude, layer),
+            ],
+        },
+        "properties": marker_properties(record, layer, stem),
+    }
+
+
+def feature_collection(records: list[dict[str, Any]], layer: str, stem: str) -> dict[str, Any]:
+    features = [
+        feature
+        for feature in (feature_for_record(record, layer, stem) for record in records)
+        if feature is not None
+    ]
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+    }
+
+
+def data_center_hub_collection(records: list[dict[str, Any]]) -> dict[str, Any]:
+    grid_size = 0.85
+    grouped: dict[tuple[int, int], list[dict[str, Any]]] = {}
+    for record in records:
+        latitude = safe_float(record.get("latitude"))
+        longitude = safe_float(record.get("longitude"))
+        if latitude is None or longitude is None:
+            continue
+        key = (math.floor(latitude / grid_size), math.floor(longitude / grid_size))
+        grouped.setdefault(key, []).append(record)
+
+    features: list[dict[str, Any]] = []
+    for (grid_lat, grid_lon), items in sorted(grouped.items()):
+        count = len(items)
+        latitudes = [float(item["latitude"]) for item in items]
+        longitudes = [float(item["longitude"]) for item in items]
+        capacity = round(total_capacity(items), 1)
+        states = sorted({clean_text(item.get("state"), 10) for item in items if clean_text(item.get("state"), 10)})
+        status_counts: dict[str, int] = {}
+        for item in items:
+            status = clean_text(item.get("status_group")) or "Other"
+            status_counts[status] = status_counts.get(status, 0) + 1
+        hub_id = f"hub-{grid_lat}-{grid_lon}"
+        features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    rounded_coordinate(sum(longitudes) / count, "data-center-hub"),
+                    rounded_coordinate(sum(latitudes) / count, "data-center-hub"),
+                ],
+            },
+            "properties": {
+                "key": hub_id,
+                "layer": "data-center-hub",
+                "count": count,
+                "capacity_mw": capacity,
+                "states": ", ".join(states[:4]),
+                "status_counts": status_counts,
+            },
+        })
+
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+    }
+
+
+def write_detail_files(
+    output_dir: Path,
+    stem: str,
+    layer: str,
+    records: list[dict[str, Any]],
+    fields: list[str],
+    generated_at: str,
+) -> list[dict[str, Any]]:
+    shards: dict[str, dict[str, Any]] = {}
+    for record in records:
+        key = record_key(record, layer)
+        detail_file = detail_file_for_key(stem, key)
+        filename = detail_file.removeprefix("data/")
+        shard = shards.setdefault(filename, {})
+        shard[key] = records_for_json([record], fields)[0]
+
+    output_files: list[dict[str, Any]] = []
+    for filename, details in sorted(shards.items()):
+        path = output_dir / filename
+        write_json(path, {
+            "generatedAt": generated_at,
+            "layer": layer,
+            "details": details,
+        })
+        output_files.append(file_record(stem, path))
+    return output_files
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path = resolve_output_file(path, {".json", ".geojson"}, "Map data file")
+    path.write_text(
+        json.dumps(payload, ensure_ascii=True, allow_nan=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def file_record(label: str, path: Path) -> dict[str, Any]:
+    path = project_path(path)
+    return {
+        "label": label,
+        "file": path.name,
+        "bytes": path.stat().st_size,
+        "sha256": sha256_file(path),
+    }
+
+
+def source_metadata() -> list[dict[str, str]]:
+    return [
+        {
+            "name": "Compute Atlas",
+            "url": COMPUTE_ATLAS_URL,
+            "description": "Open, source-cited U.S. data-center facility dataset (CC BY 4.0).",
+        },
+        {
+            "name": "EIA-860M",
+            "url": EIA_860M_PAGE_ALT,
+            "description": "Official monthly U.S. generator inventory for operating and planned power plants.",
+        },
+        {
+            "name": "Water source reference points",
+            "url": USGS_NHD_URL,
+            "description": "Named surface-water context points for proximity calculations.",
+        },
+    ]
+
+
+def summary_payload(
     data_centers: list[dict[str, Any]],
     nuclear_plants: list[dict[str, Any]],
     power_plants: list[dict[str, Any]],
     water_sources: list[dict[str, Any]],
     generated_at: str,
-) -> None:
-    payload = {
+) -> dict[str, Any]:
+    return {
         "generatedAt": generated_at,
-        "sources": [
-            {
-                "name": "Compute Atlas",
-                "url": COMPUTE_ATLAS_URL,
-                "description": "Open, source-cited U.S. data-center facility dataset (CC BY 4.0).",
+        "sources": source_metadata(),
+        "recordCounts": {
+            "dataCenters": len(data_centers),
+            "nuclearPlants": len(nuclear_plants),
+            "powerPlants": len(power_plants),
+            "waterSources": len(water_sources),
+        },
+        "capacityMw": {
+            "dataCenters": round(total_capacity(data_centers), 1),
+            "nuclearPlants": round(total_capacity(nuclear_plants), 1),
+            "powerPlants": round(total_capacity(power_plants), 1),
+        },
+        "dataFiles": {
+            "dataCenterHubs": "data-center-hubs.geojson",
+            "dataCenters": "data-centers.geojson",
+            "nuclearPlants": "nuclear-plants.geojson",
+            "powerPlants": "power-plants.geojson",
+            "waterSources": "water-sources.geojson",
+            "details": {
+                "dataCenters": "details/data-centers-00.json",
+                "nuclearPlants": "details/nuclear-plants.json",
+                "powerPlants": "details/power-plants-00.json",
+                "waterSources": "details/water-sources.json",
             },
-            {
-                "name": "EIA-860M",
-                "url": EIA_860M_PAGE_ALT,
-                "description": "Official monthly U.S. generator inventory for operating and planned power plants.",
-            },
-            {
-                "name": "Water source reference points",
-                "url": USGS_NHD_URL,
-                "description": "Named surface-water context points for proximity calculations.",
-            },
-        ],
-        "dataCenters": records_for_json(data_centers, DATA_CENTER_FIELDS),
-        "nuclearPlants": records_for_json(nuclear_plants, NUCLEAR_FIELDS),
-        "powerPlants": records_for_json(power_plants, POWER_FIELDS),
-        "waterSources": records_for_json(water_sources, WATER_FIELDS),
+        },
     }
-    path.write_text(
-        "(function () {\n"
-        "  \"use strict\";\n\n"
-        f"  window.DatacenterMapData = Object.freeze({json_for_html(payload)});\n"
-        "}());\n",
-        encoding="utf-8",
-    )
+
+
+def write_map_data_files(
+    output_dir: Path,
+    data_centers: list[dict[str, Any]],
+    nuclear_plants: list[dict[str, Any]],
+    power_plants: list[dict[str, Any]],
+    water_sources: list[dict[str, Any]],
+    generated_at: str,
+    input_files: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    output_dir = resolve_output_dir(output_dir)
+    details_dir = output_dir / "details"
+    if details_dir.exists():
+        for stale_file in details_dir.glob("*.json"):
+            stale_file.unlink()
+
+    files = [
+        ("dataCenterHubs", "data-center-hubs.geojson", data_center_hub_collection(data_centers)),
+        ("dataCenters", "data-centers.geojson", feature_collection(data_centers, "data-center", "data-centers")),
+        ("nuclearPlants", "nuclear-plants.geojson", feature_collection(nuclear_plants, "nuclear", "nuclear-plants")),
+        ("powerPlants", "power-plants.geojson", feature_collection(power_plants, "power", "power-plants")),
+        ("waterSources", "water-sources.geojson", feature_collection(water_sources, "water", "water-sources")),
+    ]
+
+    output_files: list[dict[str, Any]] = []
+    for label, filename, payload in files:
+        path = output_dir / filename
+        write_json(path, payload)
+        output_files.append(file_record(label, path))
+
+    output_files.extend(write_detail_files(
+        output_dir,
+        "data-centers",
+        "data-center",
+        data_centers,
+        DATA_CENTER_FIELDS,
+        generated_at,
+    ))
+    output_files.extend(write_detail_files(
+        output_dir,
+        "nuclear-plants",
+        "nuclear",
+        nuclear_plants,
+        NUCLEAR_FIELDS,
+        generated_at,
+    ))
+    output_files.extend(write_detail_files(
+        output_dir,
+        "power-plants",
+        "power",
+        power_plants,
+        POWER_FIELDS,
+        generated_at,
+    ))
+    output_files.extend(write_detail_files(
+        output_dir,
+        "water-sources",
+        "water",
+        water_sources,
+        WATER_FIELDS,
+        generated_at,
+    ))
+
+    summary = summary_payload(data_centers, nuclear_plants, power_plants, water_sources, generated_at)
+    summary["changeRecord"] = {
+        "generator": "script.py",
+        "format": "split-json-geojson",
+        "inputs": input_files,
+        "outputs": output_files,
+    }
+    write_json(output_dir / "map-summary.json", summary)
+    output_files.append(file_record("summary", output_dir / "map-summary.json"))
+    return output_files
 
 
 def parse_args() -> argparse.Namespace:
@@ -795,12 +1442,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--refresh-eia", action="store_true")
     parser.add_argument("--water-sources", type=Path, default=Path("water_sources.csv"))
     parser.add_argument("--output-prefix", default="us_ai_datacenters_nuclear_map")
-    parser.add_argument("--output-js", type=Path, default=Path("map-data.js"))
+    parser.add_argument("--output-dir", type=Path, default=Path("data"))
+    parser.add_argument("--output-db", type=Path, default=Path("private/map-data.sqlite"))
+    parser.add_argument("--skip-sqlite", action="store_true")
+    parser.add_argument("--output-js", type=Path, default=None, help=argparse.SUPPRESS)
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    if args.output_js:
+        warnings.warn(
+            "--output-js is deprecated and ignored; split JSON/GeoJSON files are written to --output-dir.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
     generated_at = dt.datetime.now().strftime("%B %d, %Y %I:%M %p")
 
     eia_label, eia_url, workbook_path, from_cache = download_eia_workbook(
@@ -834,20 +1490,49 @@ def main() -> int:
 
     enrich_data_centers(data_centers, nuclear_plants, power_plants, water_sources)
 
-    prefix = Path(args.output_prefix)
+    input_files = [
+        file_record("Compute Atlas data centers", resolve_output_file(args.compute_atlas_json, {".json"}, "Compute Atlas data-center JSON")),
+        file_record("Compute Atlas facilities", resolve_output_file(args.compute_atlas_all_json, {".json"}, "Compute Atlas facilities JSON")),
+        file_record("EIA-860M workbook", workbook_path),
+        file_record("Water sources", validate_existing_file(args.water_sources, {".csv"}, MAX_CSV_FILE_BYTES, "Water source CSV")),
+    ]
+
+    prefix = project_path(Path(args.output_prefix))
     write_csv(prefix.with_name(f"{prefix.name}_data_centers.csv"), data_centers, DATA_CENTER_FIELDS)
     write_csv(prefix.with_name(f"{prefix.name}_ai_datacenters.csv"), data_centers, DATA_CENTER_FIELDS)
     write_csv(prefix.with_name(f"{prefix.name}_power_plants.csv"), power_plants, POWER_FIELDS)
     write_csv(prefix.with_name(f"{prefix.name}_nuclear_plants.csv"), nuclear_plants, NUCLEAR_FIELDS)
     write_csv(prefix.with_name(f"{prefix.name}_water_sources.csv"), water_sources, WATER_FIELDS)
-    write_map_data_js(args.output_js, data_centers, nuclear_plants, power_plants, water_sources, generated_at)
+    output_files = write_map_data_files(
+        args.output_dir,
+        data_centers,
+        nuclear_plants,
+        power_plants,
+        water_sources,
+        generated_at,
+        input_files,
+    )
+    sqlite_path: Path | None = None
+    if not args.skip_sqlite:
+        sqlite_path = write_sqlite_database(
+            args.output_db,
+            data_centers,
+            nuclear_plants,
+            power_plants,
+            water_sources,
+            generated_at,
+            input_files,
+            output_files,
+        )
 
     print(f"Data centers: {len(data_centers)} from Compute Atlas")
     print(f"Power plants: {len(power_plants)} from EIA-860M + Compute Atlas power-generation records")
     print(f"Nuclear sites: {len(nuclear_plants)} operating/planned/restart/SMR records")
     print(f"Water sources: {len(water_sources)} named reference points")
     print(f"Data-center capacity shown: {total_capacity(data_centers) / 1000:,.1f} GW")
-    print(f"Map data written to: {args.output_js.resolve()}")
+    print(f"Map data written to: {project_path(args.output_dir)}")
+    if sqlite_path:
+        print(f"SQLite test database written to: {sqlite_path}")
     return 0
 
 

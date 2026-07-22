@@ -4,19 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>U.S. Data Centers, Power, Nuclear, and Water Landscape</title>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'none'; script-src 'self' https://unpkg.com; script-src-attr 'none'; style-src 'self' https://unpkg.com 'unsafe-inline'; img-src 'self' data: https://unpkg.com https://*.basemaps.cartocdn.com https://server.arcgisonline.com https://*.arcgisonline.com; font-src 'self' data:; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()">
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
   <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="anonymous">
+  <link rel="stylesheet" href="styles.css?v=ada-accessibility-20260722">
 </head>
 <body>
+  <a class="skip-link" href="#siteSearch">Skip to controls</a>
+  <a class="skip-link" href="#resultsPanel">Skip to results</a>
+
+  <p class="sr-only" id="mapAccessibilityText">
+    Interactive U.S. infrastructure map. Use the controls and results list to
+    filter data-center facilities, review text summaries, and open map details
+    without relying on pointer input.
+  </p>
+
   <!-- Leaflet mounts the map here; the controls below float on top of it. -->
-  <div id="map" role="application" aria-label="U.S. data-center, power, nuclear, and water landscape map"></div>
+  <div id="map" role="region" aria-label="U.S. data-center, power, nuclear, and water landscape map" aria-describedby="mapAccessibilityText" tabindex="0"></div>
 
   <!-- User controls: overview metrics, filters, layer switches, and selected-marker details. -->
   <aside class="ui-shell" aria-label="Map controls">
@@ -25,22 +35,22 @@
       <div class="intro-band">
         <div class="eyebrow">INCOMPAS infrastructure landscape</div>
         <h1>Data Centers, Power, and Water</h1>
-        <p class="summary">
+        <p class="summary" id="summaryText">
           422 public data-center facility records, 63 nuclear operating or pipeline
           records, 15,975 power-plant records, and 41 named water-source references.
         </p>
       </div>
       <div class="metric-grid">
         <div class="metric">
-          <strong>171.4 GW</strong>
+          <strong id="dataCapacityMetric">171.4 GW</strong>
           <span>reported data-center capacity</span>
         </div>
         <div class="metric">
-          <strong>112.4 GW</strong>
+          <strong id="nuclearCapacityMetric">112.4 GW</strong>
           <span>nuclear operating and pipeline MW</span>
         </div>
         <div class="metric">
-          <strong>15,975</strong>
+          <strong id="powerCountMetric">15,975</strong>
           <span>power plants available as a layer</span>
         </div>
       </div>
@@ -49,11 +59,16 @@
     <!-- Search, status filters, optional overlay layers, and data sources. -->
     <section class="panel control-panel">
       <div class="search-row">
-        <input id="siteSearch" type="search" placeholder="Search name, company, state, power, water" autocomplete="off">
-        <div class="mini-count"><span id="shownCount">0</span> shown</div>
+        <div class="search-field">
+          <label class="field-label" for="siteSearch">Search facilities</label>
+          <input id="siteSearch" type="search" placeholder="Name, company, state, power, water" autocomplete="off" aria-describedby="searchHelp resultCountText" aria-controls="resultsList">
+          <span class="sr-only" id="searchHelp">Filters the data-center results and markers as you type.</span>
+        </div>
+        <div class="mini-count" id="resultCountText" aria-live="polite"><span id="shownCount">0</span> shown</div>
       </div>
 
-      <div class="chip-grid" id="statusFilters">
+      <fieldset class="chip-grid" id="statusFilters" aria-controls="resultsList">
+        <legend>Status filters</legend>
         <label class="chip chip-operating active">
           <input type="checkbox" value="Operating" checked>
           <span class="swatch"></span>
@@ -79,9 +94,10 @@
           <span class="swatch"></span>
           <span>Cancelled</span>
         </label>
-      </div>
+      </fieldset>
 
-      <div class="layer-row">
+      <fieldset class="layer-row">
+        <legend>Map layers</legend>
         <label class="layer-toggle active">
           <input id="showNuclear" type="checkbox" checked>
           Nuclear
@@ -102,21 +118,31 @@
           <input id="showHeat" type="checkbox">
           Heat
         </label>
-      </div>
+      </fieldset>
 
       <div class="source-line">
         Data centers and source-cited power-generation projects:
-        <a href="https://www.compute-atlas.com/api" target="_blank" rel="noopener">Compute Atlas API</a>.
+        <a href="https://www.compute-atlas.com/api" target="_blank" rel="noopener noreferrer">Compute Atlas API</a>.
         Operating and planned generator inventory:
-        <a href="https://www.eia.gov/electricity/data/eia860m/index.php" target="_blank" rel="noopener">EIA-860M</a>.
+        <a href="https://www.eia.gov/electricity/data/eia860m/index.php" target="_blank" rel="noopener noreferrer">EIA-860M</a>.
         Surface-water context:
-        <a href="https://www.usgs.gov/national-hydrography/national-hydrography-dataset" target="_blank" rel="noopener">USGS NHD</a>
-        and <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a>.
+        <a href="https://www.usgs.gov/national-hydrography/national-hydrography-dataset" target="_blank" rel="noopener noreferrer">USGS NHD</a>
+        and <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a>.
+        <a href="accessibility.html">Accessibility statement</a>.
       </div>
     </section>
 
+    <!-- Keyboard and screen-reader accessible counterpart to the visual data-center markers. -->
+    <section class="panel results-panel" id="resultsPanel" aria-labelledby="resultsHeading">
+      <div class="section-heading">
+        <h2 id="resultsHeading">Results</h2>
+        <span class="pill" id="resultsMeta">Loading</span>
+      </div>
+      <ol class="results-list" id="resultsList" aria-live="polite"></ol>
+    </section>
+
     <!-- This panel is replaced with marker-specific information after a click. -->
-    <section class="panel detail-panel" id="detailPanel">
+    <section class="panel detail-panel" id="detailPanel" aria-live="polite" aria-label="Selected map feature details" tabindex="-1">
       <div class="detail-title">
         <h2>National View</h2>
         <span class="pill">Landscape</span>
@@ -127,18 +153,17 @@
         nuclear site, power plant, and named water-source reference.
       </div>
       <dl class="detail-list">
-        <dt>Data centers</dt><dd>422 public facility records</dd>
-        <dt>Power plants</dt><dd>15,975 operating and planned records</dd>
-        <dt>Water</dt><dd>41 named reference points</dd>
+        <dt>Data centers</dt><dd id="dataCountDetail">422 public facility records</dd>
+        <dt>Power plants</dt><dd id="powerCountDetail">15,975 operating and planned records</dd>
+        <dt>Water</dt><dd id="waterCountDetail">41 named reference points</dd>
       </dl>
     </section>
   </aside>
 
   <!-- External map libraries and map behavior are loaded with defer for faster parsing. -->
-  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script defer src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-  <script defer src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-  <script defer src="map-data.js"></script>
-  <script defer src="app.js"></script>
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+  <script defer src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin="anonymous"></script>
+  <script defer src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js" crossorigin="anonymous"></script>
+  <script defer src="app.js?v=ada-accessibility-20260722"></script>
 </body>
 </html>
