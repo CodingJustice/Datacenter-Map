@@ -1,0 +1,1 @@
+{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[-155.595,62.957]},"properties":{"key":"6555-2e84eaa2","layer":"power","name":"McGrath","state":"AK","detail_file":"data/details/power-plants-54.json","plant_id":"6555","capacity_mw":1.6,"status_group":"Operating","energy_sources":"DFO","type":"Power plant","is_nuclear":false}}]}

@@ -1,0 +1,15 @@
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.csr
+*.log
+*.sqlite
+*.sqlite3
+__pycache__/
+.pytest_cache/
+uploads/
+private/

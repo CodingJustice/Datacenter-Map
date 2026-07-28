@@ -1,0 +1,910 @@
+/* Styles for the U.S. data-center and nuclear power map. */
+/* Theme variables used by panels, controls, markers, and map overlays. */
+    :root {
+      --ink: #0c1222;
+      --muted: #4b5870;
+      --panel: rgba(255, 255, 255, 0.96);
+      --panel-strong: rgba(255, 255, 255, 0.98);
+      --line: rgba(15, 23, 42, 0.2);
+      --blue: #005ea8;
+      --amber: #8a5a00;
+      --magenta: #b91c5c;
+      --violet: #5b21b6;
+      --green: #047857;
+      --teal: #04766d;
+      --focus: #facc15;
+      --shadow: 0 18px 44px rgba(8, 18, 38, 0.22);
+    }
+
+    /* Make the browser viewport and the Leaflet map fill the page. */
+    html,
+    body {
+      block-size: 100%;
+      margin: 0;
+      background: #08111f;
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    /* Leaflet attaches its interactive map to this element. */
+    #map {
+      block-size: 100%;
+      min-block-size: 720px;
+      inline-size: 100%;
+      background: #dbe7ea;
+      contain: layout paint;
+    }
+
+    .leaflet-container {
+      background: #dbe7ea;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    #map .leaflet-tile-pane {
+      background: #dbe7ea;
+    }
+
+    #map .leaflet-zoom-animated,
+    #map .leaflet-marker-pane,
+    #map .leaflet-overlay-pane,
+    #map .leaflet-tile,
+    #map .leaflet-marker-icon,
+    #map .leaflet-heatmap-layer {
+      will-change: transform;
+    }
+
+    #map .leaflet-tile {
+      backface-visibility: hidden;
+      transition: opacity 160ms ease-out;
+    }
+
+    #map .leaflet-heatmap-layer {
+      transition: opacity 120ms ease-out;
+    }
+
+    #map.map-transitioning .leaflet-heatmap-layer {
+      opacity: 0.86;
+    }
+
+    .sr-only {
+      position: absolute;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      inline-size: 1px;
+      block-size: 1px;
+      margin: -1px;
+      padding: 0;
+      border: 0;
+      white-space: nowrap;
+    }
+
+    .skip-link {
+      position: fixed;
+      inset-block-start: 12px;
+      inset-inline-start: 12px;
+      z-index: 1200;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: #111827;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      font-weight: 850;
+      text-decoration: none;
+      transform: translateY(-180%);
+    }
+
+    .skip-link:focus {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+      transform: translateY(0);
+    }
+
+    #map:focus-visible {
+      outline: 4px solid var(--focus);
+      outline-offset: -4px;
+    }
+
+    /* Floating left-side UI that stays clickable above the map. */
+    .ui-shell {
+      position: fixed;
+      inset-block-start: 18px;
+      inset-inline-start: 18px;
+      z-index: 900;
+      inline-size: min(390px, calc(100vw - 36px));
+      max-block-size: calc(100dvh - 36px);
+      display: grid;
+      gap: 10px;
+      overflow: auto;
+      padding-inline-end: 4px;
+      pointer-events: none;
+      scrollbar-gutter: stable;
+    }
+
+    /* Shared panel treatment for the intro, controls, and detail card. */
+    .panel {
+      pointer-events: auto;
+      background: var(--panel);
+      border: 1px solid rgba(15, 23, 42, 0.22);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    /* Top summary panel with title text and generated metrics. */
+    .intro-panel {
+      overflow: hidden;
+    }
+
+    .intro-band {
+      padding: 14px 16px 12px;
+      color: #ffffff;
+      background:
+        linear-gradient(135deg, #07466f, #7a1238 52%, #105c38),
+        #12304e;
+    }
+
+    .eyebrow {
+      margin-block-end: 5px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.9;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.06;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      margin: 8px 0 0;
+      max-inline-size: 35rem;
+      color: #ffffff;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+      border-block-start: 1px solid var(--line);
+    }
+
+    .metric {
+      min-inline-size: 0;
+      padding: 10px 12px;
+      background: var(--panel-strong);
+    }
+
+    .metric strong {
+      display: block;
+      color: #0f172a;
+      font-size: 18px;
+      line-height: 1.05;
+      white-space: nowrap;
+    }
+
+    .metric span {
+      display: block;
+      margin-block-start: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.15;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Search box, status filters, layer toggles, and source note. */
+    .control-panel {
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .search-field {
+      display: grid;
+      gap: 5px;
+      min-inline-size: 0;
+    }
+
+    .field-label,
+    .chip-grid legend,
+    .layer-row legend {
+      color: #172033;
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.2;
+    }
+
+    .search-row input {
+      min-inline-size: 0;
+      min-block-size: 44px;
+      border: 1px solid rgba(15, 23, 42, 0.42);
+      border-radius: 8px;
+      padding: 10px 11px;
+      color: var(--ink);
+      background: #ffffff;
+      font: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .search-row input:focus-visible {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.72);
+    }
+
+    .mini-count {
+      display: grid;
+      place-items: center;
+      min-inline-size: 68px;
+      min-block-size: 44px;
+      border-radius: 8px;
+      padding: 9px 10px;
+      color: #ffffff;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+      background: #111827;
+    }
+
+    .chip-grid,
+    .layer-row {
+      border: 0;
+      margin: 0;
+      padding: 0;
+      min-inline-size: 0;
+    }
+
+    .chip-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .chip-grid legend,
+    .layer-row legend {
+      grid-column: 1 / -1;
+      margin-block-end: 2px;
+      padding: 0;
+    }
+
+    .chip,
+    .layer-toggle {
+      display: flex;
+      min-block-size: 44px;
+      min-inline-size: 0;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid rgba(15, 23, 42, 0.32);
+      border-radius: 8px;
+      padding: 9px;
+      background: rgba(255, 255, 255, 0.82);
+      color: #172033;
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.15;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .chip input,
+    .layer-toggle input {
+      accent-color: var(--blue);
+      inline-size: 24px;
+      block-size: 24px;
+      flex: 0 0 auto;
+    }
+
+    .chip:focus-within,
+    .layer-toggle:focus-within {
+      border-color: #111827;
+      box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.72);
+    }
+
+    .swatch {
+      inline-size: 13px;
+      block-size: 13px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 23, 42, 0.34);
+      background: var(--chip-color);
+      box-shadow: 0 0 0 3px var(--chip-glow);
+    }
+
+    .chip-operating {
+      --chip-color: #005ea8;
+      --chip-glow: rgba(0, 94, 168, 0.18);
+    }
+
+    .chip-construction {
+      --chip-color: #8a5a00;
+      --chip-glow: rgba(138, 90, 0, 0.2);
+    }
+
+    .chip-proposed {
+      --chip-color: #5b21b6;
+      --chip-glow: rgba(91, 33, 182, 0.2);
+    }
+
+    .chip-planned {
+      --chip-color: #b91c5c;
+      --chip-glow: rgba(185, 28, 92, 0.2);
+    }
+
+    .chip-permitted {
+      --chip-color: #04766d;
+      --chip-glow: rgba(4, 118, 109, 0.2);
+    }
+
+    .chip-cancelled {
+      --chip-color: #475569;
+      --chip-glow: rgba(71, 85, 105, 0.2);
+    }
+
+    .chip-other {
+      --chip-color: #334155;
+      --chip-glow: rgba(51, 65, 85, 0.18);
+    }
+
+    .layer-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+      gap: 7px;
+    }
+
+    .layer-toggle {
+      justify-content: center;
+      padding: 8px;
+    }
+
+    .layer-toggle.active,
+    .chip.active {
+      border-color: rgba(0, 94, 168, 0.72);
+      background: #f2f9ff;
+    }
+
+    .source-line {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .source-line a {
+      color: #0369a1;
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    .source-line a:focus-visible,
+    .popup-table a:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+      border-radius: 3px;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.18;
+    }
+
+    .results-panel {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .results-list {
+      display: grid;
+      gap: 7px;
+      max-block-size: min(230px, 32dvh);
+      margin: 0;
+      padding: 0;
+      overflow: auto;
+      list-style: none;
+    }
+
+    .result-button {
+      display: grid;
+      gap: 4px;
+      inline-size: 100%;
+      min-block-size: 44px;
+      border: 1px solid rgba(15, 23, 42, 0.24);
+      border-radius: 8px;
+      padding: 9px 10px;
+      color: #172033;
+      background: #ffffff;
+      font: inherit;
+      text-align: start;
+      cursor: pointer;
+    }
+
+    .result-button:hover {
+      border-color: rgba(0, 94, 168, 0.7);
+      background: #f8fbff;
+    }
+
+    .result-button:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .result-name {
+      color: #0f172a;
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.2;
+    }
+
+    .result-meta,
+    .result-context,
+    .result-empty {
+      color: #4b5870;
+      font-size: 11px;
+      font-weight: 650;
+      line-height: 1.3;
+    }
+
+    .result-context {
+      color: #334155;
+      font-weight: 750;
+    }
+
+    /* Detail panel that updates when a marker is clicked. */
+    .detail-panel {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .detail-title {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .detail-title h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.18;
+    }
+
+    .pill {
+      flex: 0 0 auto;
+      border-radius: 999px;
+      padding: 4px 8px;
+      color: #ffffff;
+      background: #0f172a;
+      font-size: 10px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .detail-body {
+      color: #263244;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .detail-list {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 5px 9px;
+      margin: 0;
+      font-size: 12px;
+    }
+
+    .detail-list dt {
+      color: #4b5870;
+      font-weight: 800;
+    }
+
+    .detail-list dd {
+      min-inline-size: 0;
+      margin: 0;
+      color: #111827;
+    }
+
+    /* Custom Leaflet marker and cluster visuals. */
+    .map-marker {
+      position: relative;
+      display: grid;
+      place-items: center;
+      inline-size: var(--size);
+      block-size: var(--size);
+      border: 2px solid rgba(255, 255, 255, 0.92);
+      border-radius: 999px;
+      color: #ffffff;
+      background: radial-gradient(circle at 35% 28%, #ffffff 0 7%, var(--marker) 35%, #172033 100%);
+      box-shadow: 0 0 0 4px var(--glow), 0 9px 24px rgba(4, 12, 26, 0.28), 0 0 26px var(--glow);
+      transform: translate3d(0, 0, 0);
+    }
+
+    .map-marker::after {
+      position: absolute;
+      inset: -7px;
+      content: "";
+      border: 1px solid var(--glow);
+      border-radius: inherit;
+      opacity: 0.55;
+      transform: scale(1.18);
+    }
+
+    .marker-label {
+      position: relative;
+      z-index: 1;
+      min-inline-size: 16px;
+      padding: 2px 3px;
+      border-radius: 999px;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.95);
+      font-size: 9px;
+      font-weight: 900;
+      line-height: 1;
+      text-align: center;
+    }
+
+    .nuclear-marker {
+      background: radial-gradient(circle at 35% 28%, #eafff1 0 8%, #047857 38%, #0e3d27 100%);
+    }
+
+    .power-marker {
+      border-width: 1px;
+      background: radial-gradient(circle at 35% 28%, #fff7ed 0 8%, var(--marker) 42%, #431407 100%);
+      box-shadow: 0 0 0 3px var(--glow), 0 6px 18px rgba(4, 12, 26, 0.22);
+    }
+
+    .water-marker {
+      background: radial-gradient(circle at 35% 28%, #eff6ff 0 8%, #0369a1 40%, #0c4a6e 100%);
+      box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.22), 0 7px 18px rgba(4, 12, 26, 0.2);
+    }
+
+    .power-marker::after,
+    .water-marker::after {
+      display: none;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 0.8;
+        transform: scale(0.88);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(1.55);
+      }
+    }
+
+    @keyframes hub-split-out {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      58% {
+        opacity: 0.62;
+        transform: scale(1.18);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(1.42);
+      }
+    }
+
+    @keyframes bubble-pop-in {
+      0% {
+        opacity: 0;
+        transform: scale(0.42);
+      }
+      62% {
+        opacity: 1;
+        transform: scale(1.12);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes hub-merge-in {
+      0% {
+        opacity: 0;
+        transform: scale(0.68);
+      }
+      64% {
+        opacity: 1;
+        transform: scale(1.08);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes bubble-merge-out {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0.46);
+      }
+    }
+
+    .cluster-wrap {
+      background: transparent;
+      border: 0;
+    }
+
+    .hub-wrap {
+      background: transparent;
+      border: 0;
+    }
+
+    #map.data-bubbles-splitting .hub-wrap {
+      z-index: 740 !important;
+      pointer-events: none;
+    }
+
+    #map.data-bubbles-splitting .hub-wrap .hub-icon {
+      animation: hub-split-out 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    #map.data-bubbles-splitting .sites-cluster-wrap .cluster-icon,
+    #map.data-bubbles-splitting .dc-wrap .map-marker {
+      animation: bubble-pop-in 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-delay: 80ms;
+    }
+
+    #map.data-bubbles-merging .hub-wrap {
+      z-index: 740 !important;
+    }
+
+    #map.data-bubbles-merging .hub-wrap .hub-icon {
+      animation: hub-merge-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-delay: 40ms;
+    }
+
+    #map.data-bubbles-merging .sites-cluster-wrap,
+    #map.data-bubbles-merging .dc-wrap {
+      pointer-events: none;
+    }
+
+    #map.data-bubbles-merging .sites-cluster-wrap .cluster-icon,
+    #map.data-bubbles-merging .dc-wrap .map-marker {
+      animation: bubble-merge-out 360ms cubic-bezier(0.64, 0, 0.78, 0) both;
+    }
+
+    .cluster-icon {
+      display: grid;
+      place-items: center;
+      inline-size: var(--size);
+      block-size: var(--size);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      border-radius: 999px;
+      color: #ffffff;
+      background: radial-gradient(circle at 35% 28%, #ffffff 0 7%, #2dd4bf 28%, #2563eb 62%, #0f172a 100%);
+      box-shadow: 0 0 0 5px rgba(45, 212, 191, 0.2), 0 12px 30px rgba(15, 23, 42, 0.28);
+      text-align: center;
+    }
+
+    .hub-icon {
+      display: grid;
+      place-items: center;
+      inline-size: var(--size);
+      block-size: var(--size);
+      border: 2px solid rgba(255, 255, 255, 0.92);
+      border-radius: 999px;
+      color: #ffffff;
+      background: radial-gradient(circle at 32% 25%, #ffffff 0 7%, #00a6ff 24%, #00d4b8 56%, #101827 100%);
+      box-shadow: 0 0 0 6px rgba(0, 166, 255, 0.18), 0 14px 34px rgba(15, 23, 42, 0.3);
+      text-align: center;
+    }
+
+    .leaflet-marker-icon:focus-visible .map-marker,
+    .leaflet-marker-icon:focus-visible .cluster-icon,
+    .leaflet-marker-icon:focus-visible .hub-icon {
+      outline: 4px solid var(--focus);
+      outline-offset: 4px;
+    }
+
+    .cluster-icon b {
+      display: block;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .hub-icon b {
+      display: block;
+      font-size: 17px;
+      line-height: 1;
+    }
+
+    .cluster-icon span,
+    .hub-icon span {
+      display: block;
+      margin-block-start: 1px;
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* Popup, tooltip, and built-in Leaflet control styling. */
+    .leaflet-popup-content-wrapper {
+      border-radius: 8px;
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.26);
+    }
+
+    .leaflet-popup-content {
+      inline-size: 310px !important;
+      margin: 14px;
+      color: #172033;
+    }
+
+    .popup-title {
+      margin: 0 0 8px;
+      font-size: 16px;
+      line-height: 1.16;
+    }
+
+    .popup-kicker {
+      margin-block-end: 5px;
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .popup-table {
+      inline-size: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .popup-table th,
+    .popup-table td {
+      padding: 5px 0;
+      border-block-start: 1px solid rgba(15, 23, 42, 0.08);
+      vertical-align: start;
+    }
+
+    .popup-table th {
+      inline-size: 34%;
+      padding-inline-end: 10px;
+      color: #64748b;
+      font-weight: 850;
+      text-align: start;
+    }
+
+    .popup-table a {
+      color: #0369a1;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .leaflet-tooltip {
+      border: 0;
+      border-radius: 7px;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.9);
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.2);
+      font-weight: 750;
+    }
+
+    .leaflet-control-zoom,
+    .leaflet-control-layers {
+      border: 0 !important;
+      box-shadow: var(--shadow) !important;
+    }
+
+    .leaflet-control-zoom a,
+    .leaflet-control-layers-toggle {
+      inline-size: 44px !important;
+      block-size: 44px !important;
+      line-height: 44px !important;
+    }
+
+    .leaflet-control-zoom a:focus-visible,
+    .leaflet-control-layers-toggle:focus-visible,
+    .leaflet-control-layers-selector:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .leaflet-control-attribution {
+      color: #334155;
+      background: rgba(255, 255, 255, 0.84) !important;
+      font-size: 10px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+      }
+
+      .map-marker::after {
+        animation: none;
+      }
+
+      #map.data-bubbles-splitting .hub-wrap .hub-icon,
+      #map.data-bubbles-splitting .sites-cluster-wrap .cluster-icon,
+      #map.data-bubbles-splitting .dc-wrap .map-marker,
+      #map.data-bubbles-merging .hub-wrap .hub-icon,
+      #map.data-bubbles-merging .sites-cluster-wrap .cluster-icon,
+      #map.data-bubbles-merging .dc-wrap .map-marker {
+        animation: none;
+      }
+
+      #map .leaflet-heatmap-layer {
+        transition: none;
+      }
+    }
+
+    @media (prefers-contrast: more) {
+      .panel {
+        background: #ffffff;
+        border-color: #111827;
+        box-shadow: none;
+      }
+
+      .result-button,
+      .chip,
+      .layer-toggle,
+      .search-row input {
+        border-color: #111827;
+      }
+    }
+
+    /* Compact layout adjustments for narrow screens. */
+    @media (max-width: 780px) {
+      #map {
+        min-block-size: 780px;
+      }
+
+      .ui-shell {
+        inset-block-start: 10px;
+        inset-inline-start: 10px;
+        inline-size: calc(100vw - 20px);
+        max-block-size: calc(100dvh - 20px);
+      }
+
+      h1 {
+        font-size: 21px;
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .results-list {
+        max-block-size: min(210px, 28dvh);
+      }
+    }

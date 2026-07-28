@@ -1,0 +1,1 @@
+{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[-159.536,61.581]},"properties":{"key":"7182-47158bee","layer":"power","name":"Aniak","state":"AK","detail_file":"data/details/power-plants-23.json","plant_id":"7182","capacity_mw":1.7,"status_group":"Operating","energy_sources":"DFO","type":"Power plant","is_nuclear":false}}]}
