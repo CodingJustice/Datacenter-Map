@@ -32,11 +32,39 @@
       block-size: 100%;
       min-block-size: 720px;
       inline-size: 100%;
-      background: #101827;
+      background: #dbe7ea;
+      contain: layout paint;
     }
 
     .leaflet-container {
+      background: #dbe7ea;
       font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    #map .leaflet-tile-pane {
+      background: #dbe7ea;
+    }
+
+    #map .leaflet-zoom-animated,
+    #map .leaflet-marker-pane,
+    #map .leaflet-overlay-pane,
+    #map .leaflet-tile,
+    #map .leaflet-marker-icon,
+    #map .leaflet-heatmap-layer {
+      will-change: transform;
+    }
+
+    #map .leaflet-tile {
+      backface-visibility: hidden;
+      transition: opacity 160ms ease-out;
+    }
+
+    #map .leaflet-heatmap-layer {
+      transition: opacity 120ms ease-out;
+    }
+
+    #map.map-transitioning .leaflet-heatmap-layer {
+      opacity: 0.86;
     }
 
     .sr-only {
@@ -571,6 +599,62 @@
       }
     }
 
+    @keyframes hub-split-out {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      58% {
+        opacity: 0.62;
+        transform: scale(1.18);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(1.42);
+      }
+    }
+
+    @keyframes bubble-pop-in {
+      0% {
+        opacity: 0;
+        transform: scale(0.42);
+      }
+      62% {
+        opacity: 1;
+        transform: scale(1.12);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes hub-merge-in {
+      0% {
+        opacity: 0;
+        transform: scale(0.68);
+      }
+      64% {
+        opacity: 1;
+        transform: scale(1.08);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes bubble-merge-out {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0.46);
+      }
+    }
+
     .cluster-wrap {
       background: transparent;
       border: 0;
@@ -579,6 +663,40 @@
     .hub-wrap {
       background: transparent;
       border: 0;
+    }
+
+    #map.data-bubbles-splitting .hub-wrap {
+      z-index: 740 !important;
+      pointer-events: none;
+    }
+
+    #map.data-bubbles-splitting .hub-wrap .hub-icon {
+      animation: hub-split-out 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    #map.data-bubbles-splitting .sites-cluster-wrap .cluster-icon,
+    #map.data-bubbles-splitting .dc-wrap .map-marker {
+      animation: bubble-pop-in 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-delay: 80ms;
+    }
+
+    #map.data-bubbles-merging .hub-wrap {
+      z-index: 740 !important;
+    }
+
+    #map.data-bubbles-merging .hub-wrap .hub-icon {
+      animation: hub-merge-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-delay: 40ms;
+    }
+
+    #map.data-bubbles-merging .sites-cluster-wrap,
+    #map.data-bubbles-merging .dc-wrap {
+      pointer-events: none;
+    }
+
+    #map.data-bubbles-merging .sites-cluster-wrap .cluster-icon,
+    #map.data-bubbles-merging .dc-wrap .map-marker {
+      animation: bubble-merge-out 360ms cubic-bezier(0.64, 0, 0.78, 0) both;
     }
 
     .cluster-icon {
@@ -734,6 +852,19 @@
 
       .map-marker::after {
         animation: none;
+      }
+
+      #map.data-bubbles-splitting .hub-wrap .hub-icon,
+      #map.data-bubbles-splitting .sites-cluster-wrap .cluster-icon,
+      #map.data-bubbles-splitting .dc-wrap .map-marker,
+      #map.data-bubbles-merging .hub-wrap .hub-icon,
+      #map.data-bubbles-merging .sites-cluster-wrap .cluster-icon,
+      #map.data-bubbles-merging .dc-wrap .map-marker {
+        animation: none;
+      }
+
+      #map .leaflet-heatmap-layer {
+        transition: none;
       }
     }
 

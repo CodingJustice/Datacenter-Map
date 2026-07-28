@@ -15,12 +15,24 @@
   const MAX_POWER_RECORDS = 25000;
   const MAX_WATER_RECORDS = 1000;
   const MAX_INITIAL_DATA_CHARS = 1_500_000;
-  const MAX_POWER_DATA_CHARS = 6_500_000;
+  const MAX_POWER_TILE_INDEX_CHARS = 350_000;
+  const MAX_POWER_TILE_CHARS = 1_200_000;
   const MAX_DETAIL_DATA_CHARS = 900_000;
   const MAX_RENDERED_POWER_MARKERS = 1600;
   const POWER_BOUNDS_PADDING = 0.35;
   const MAX_ANIMATED_MOVE_METERS = 450_000;
   const SELECTED_RESULT_ZOOM = 8;
+  const VIEWPORT_REFRESH_DELAY_MS = 90;
+  const POWER_REFRESH_DELAY_MS = 110;
+  const HEAT_REFRESH_DELAY_MS = 80;
+  const BUBBLE_SPLIT_TRANSITION_MS = 460;
+  const TOUCHPAD_ZOOM_STEP_DELTA = 90;
+  const TOUCHPAD_ZOOM_COOLDOWN_MS = 220;
+  const TOUCHPAD_ZOOM_RESET_MS = 180;
+  const HEAT_BASE_RADIUS = 34;
+  const HEAT_BASE_BLUR = 30;
+  const HEAT_BASE_ZOOM = 4;
+  const HEAT_RADIUS_SCALE = 1.16;
 
   const VISIBILITY = Object.freeze({
     dataHubMaxZoom: 5,
@@ -37,7 +49,7 @@
     dataCenterHubs: "data/data-center-hubs.geojson",
     dataCenters: "data/data-centers.geojson",
     nuclearPlants: "data/nuclear-plants.geojson",
-    powerPlants: "data/power-plants.geojson",
+    powerTileIndex: "data/power-tiles/index.json",
     waterSources: "data/water-sources.geojson"
   });
 
@@ -55,6 +67,22 @@
     nuclear: { color: "#15803d", dashArray: "6 8", opacity: 0.72 },
     power: { color: "#c2410c", dashArray: "2 8", opacity: 0.68 },
     water: { color: "#0369a1", dashArray: "1 9", opacity: 0.7 }
+  });
+
+  const HEAT_GRADIENT = Object.freeze({
+    0.18: "#22d3ee",
+    0.38: "#22c55e",
+    0.58: "#facc15",
+    0.78: "#fb7185",
+    1.0: "#a855f7"
+  });
+
+  const TILE_LAYER_OPTIONS = Object.freeze({
+    maxZoom: 19,
+    updateWhenIdle: false,
+    updateWhenZooming: true,
+    updateInterval: 140,
+    keepBuffer: 4
   });
 
   const US_BOUNDS = L.latLngBounds(
@@ -86,17 +114,19 @@
   let dataCenters = [];
   let nuclearPlants = [];
   let waterSources = [];
-  let powerPlants = null;
-  let powerDataRequest = null;
+  let powerTileIndex = null;
+  let powerTileIndexRequest = null;
   const detailShardCache = new Map();
   const dataCenterMarkerCache = new Map();
   const dataCenterLineCache = new Map();
   const hubMarkerCache = new Map();
   const hubBuildCache = new Map();
   const powerMarkerCache = new Map();
+  const powerTileCache = new Map();
   const reducedMotionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
   let dataCenterRenderKey = "";
   let powerRenderKey = "";
+  let powerRequestKey = "";
   let powerRefreshFrame = 0;
 
   const map = L.map("map", {
@@ -106,9 +136,15 @@
     maxZoom: 10,
     zoomControl: false,
     preferCanvas: true,
+    zoomAnimation: !prefersReducedMotion(),
+    markerZoomAnimation: !prefersReducedMotion(),
+    fadeAnimation: !prefersReducedMotion(),
     keyboard: true,
     keyboardPanDelta: 70,
-    scrollWheelZoom: false
+    scrollWheelZoom: false,
+    wheelDebounceTime: 70,
+    wheelPxPerZoomLevel: 90,
+    bounceAtZoomLimits: false
   });
 
   map.fitBounds(US_BOUNDS, { padding: [20, 20] });
@@ -116,27 +152,19 @@
   // Tile layers are external but version-stable; the CSP only allows vetted hosts.
   const baseLayers = {
     Color: L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      maxZoom: 19,
-      updateWhenIdle: true,
-      keepBuffer: 2,
+      ...TILE_LAYER_OPTIONS,
       attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
     }),
     Light: L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      maxZoom: 19,
-      updateWhenIdle: true,
-      keepBuffer: 2,
+      ...TILE_LAYER_OPTIONS,
       attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
     }),
     Dark: L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      maxZoom: 19,
-      updateWhenIdle: true,
-      keepBuffer: 2,
+      ...TILE_LAYER_OPTIONS,
       attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
     }),
     Satellite: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-      maxZoom: 19,
-      updateWhenIdle: true,
-      keepBuffer: 2,
+      ...TILE_LAYER_OPTIONS,
       attribution: "Tiles &copy; Esri"
     })
   };
@@ -146,7 +174,7 @@
     showCoverageOnHover: false,
     spiderfyOnMaxZoom: true,
     disableClusteringAtZoom: 8,
-    removeOutsideVisibleBounds: true,
+    removeOutsideVisibleBounds: false,
     animate: false,
     animateAddingMarkers: false,
     maxClusterRadius: 44,
@@ -158,11 +186,23 @@
 
   const nuclearLayer = L.layerGroup();
   const waterLayer = L.layerGroup();
+  const connectorRenderer = L.canvas({ padding: 1.0 });
   const connectorLayer = L.layerGroup();
 
   let powerCluster = null;
   let heatLayer = null;
+  let heatPoints = null;
   let refreshFrame = 0;
+  let viewportRefreshTimer = 0;
+  let heatRefreshTimer = 0;
+  let powerRefreshTimer = 0;
+  let dataBubbleTransitionTimer = 0;
+  let dataBubbleTransitionMode = "";
+  let zoomStartLevel = 0;
+  let touchpadZoomDelta = 0;
+  let touchpadZoomResetTimer = 0;
+  let lastTouchpadZoomAt = 0;
+  let isZooming = false;
 
   baseLayers.Light.addTo(map);
   L.control.zoom({ position: "bottomright" }).addTo(map);
@@ -201,25 +241,95 @@
       if (rawData.generatedAt) {
         map.attributionControl.addAttribution(`Generated ${safeText(rawData.generatedAt)}`);
       }
-      map.on("zoomend", () => {
-        refreshDataCenterLayer({ renderResults: false });
-        syncLayerToggles();
-      });
-      map.on("moveend", () => {
-        const visibility = layerVisibility();
-        if (visibility.connectors && visibility.dataMarkers) {
-          refreshDataCenterLayer({ renderResults: false });
-        }
-        if (visibility.power) {
-          schedulePowerLayerRefresh();
-        }
-      });
+      map.on("zoomstart", handleZoomStart);
+      map.on("zoomend", handleZoomEnd);
+      map.on("moveend", scheduleViewportLayerRefresh);
     } catch (error) {
       showDataError(error);
     }
   }
 
+  function handleZoomStart() {
+    isZooming = true;
+    zoomStartLevel = map.getZoom();
+    stopDataBubbleTransition({ refresh: false });
+    map.getContainer().classList.add("map-transitioning");
+    if (viewportRefreshTimer) {
+      window.clearTimeout(viewportRefreshTimer);
+      viewportRefreshTimer = 0;
+    }
+    if (heatRefreshTimer) {
+      window.clearTimeout(heatRefreshTimer);
+      heatRefreshTimer = 0;
+    }
+    cancelPowerLayerRefresh();
+  }
+
+  function handleZoomEnd() {
+    isZooming = false;
+    map.getContainer().classList.remove("map-transitioning");
+    const transitionMode = dataBubbleTransitionForZoom(zoomStartLevel, map.getZoom());
+    if (transitionMode) {
+      startDataBubbleTransition(transitionMode);
+    }
+    scheduleHeatLayerRefresh();
+    scheduleViewportLayerRefresh();
+  }
+
+  function dataBubbleTransitionForZoom(startZoom, endZoom) {
+    if (prefersReducedMotion()) return "";
+    if (startZoom < VISIBILITY.dataMarkerMinZoom && endZoom >= VISIBILITY.dataMarkerMinZoom) {
+      return "splitting";
+    }
+    if (startZoom >= VISIBILITY.dataMarkerMinZoom && endZoom < VISIBILITY.dataMarkerMinZoom) {
+      return "merging";
+    }
+    return "";
+  }
+
+  function startDataBubbleTransition(mode) {
+    stopDataBubbleTransition({ refresh: false });
+    dataBubbleTransitionMode = mode;
+    map.getContainer().classList.add(`data-bubbles-${mode}`);
+    refreshDataCenterLayer({ renderResults: false });
+    syncLayerToggles();
+    dataBubbleTransitionTimer = window.setTimeout(() => {
+      stopDataBubbleTransition({ refresh: true });
+    }, BUBBLE_SPLIT_TRANSITION_MS);
+  }
+
+  function stopDataBubbleTransition(options = {}) {
+    if (dataBubbleTransitionTimer) {
+      window.clearTimeout(dataBubbleTransitionTimer);
+      dataBubbleTransitionTimer = 0;
+    }
+    if (dataBubbleTransitionMode) {
+      map.getContainer().classList.remove(`data-bubbles-${dataBubbleTransitionMode}`);
+    }
+    dataBubbleTransitionMode = "";
+    if (options.refresh) {
+      refreshDataCenterLayer({ renderResults: false });
+      syncLayerToggles();
+    }
+  }
+
+  function scheduleViewportLayerRefresh() {
+    if (isZooming) return;
+    if (viewportRefreshTimer) window.clearTimeout(viewportRefreshTimer);
+    viewportRefreshTimer = window.setTimeout(() => {
+      viewportRefreshTimer = 0;
+      if (isZooming) return;
+      refreshViewportLayers();
+    }, VIEWPORT_REFRESH_DELAY_MS);
+  }
+
+  function refreshViewportLayers() {
+    refreshDataCenterLayer({ renderResults: false });
+    syncLayerToggles();
+  }
+
   function bindControls() {
+    bindTouchpadZoom();
     searchInput.addEventListener("input", scheduleDataCenterRefresh);
     resultsList.addEventListener("click", handleResultActivation);
     resultsList.addEventListener("keydown", handleResultActivation);
@@ -239,6 +349,64 @@
         syncLayerToggles();
       });
     });
+  }
+
+  function bindTouchpadZoom() {
+    map.getContainer().addEventListener("wheel", handleTouchpadZoom, { passive: false });
+  }
+
+  function handleTouchpadZoom(event) {
+    if (!shouldHandleTouchpadZoom(event)) return;
+    event.preventDefault();
+
+    const delta = normalizedWheelDelta(event);
+    if (!delta) return;
+
+    touchpadZoomDelta = clamp(touchpadZoomDelta + delta, -TOUCHPAD_ZOOM_STEP_DELTA, TOUCHPAD_ZOOM_STEP_DELTA);
+    if (touchpadZoomResetTimer) window.clearTimeout(touchpadZoomResetTimer);
+    touchpadZoomResetTimer = window.setTimeout(() => {
+      touchpadZoomDelta = 0;
+      touchpadZoomResetTimer = 0;
+    }, TOUCHPAD_ZOOM_RESET_MS);
+
+    const now = currentTimeMs();
+    if (Math.abs(touchpadZoomDelta) < TOUCHPAD_ZOOM_STEP_DELTA || now - lastTouchpadZoomAt < TOUCHPAD_ZOOM_COOLDOWN_MS) {
+      return;
+    }
+
+    const direction = touchpadZoomDelta < 0 ? 1 : -1;
+    touchpadZoomDelta = 0;
+    lastTouchpadZoomAt = now;
+    zoomByButtonStep(direction);
+  }
+
+  function shouldHandleTouchpadZoom(event) {
+    if (event.defaultPrevented || event.altKey || event.shiftKey) return false;
+    if (event.target && typeof event.target.closest === "function" && event.target.closest(".ui-shell")) {
+      return false;
+    }
+    if (event.ctrlKey || event.metaKey) return true;
+    return Math.abs(event.deltaY) > Math.abs(event.deltaX) && Math.abs(event.deltaY) >= 4;
+  }
+
+  function normalizedWheelDelta(event) {
+    const multiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+    return event.deltaY * multiplier;
+  }
+
+  function currentTimeMs() {
+    return window.performance && typeof window.performance.now === "function"
+      ? window.performance.now()
+      : Date.now();
+  }
+
+  function zoomByButtonStep(direction) {
+    const options = { animate: !prefersReducedMotion() };
+    if (direction > 0) {
+      map.zoomIn(1, options);
+    } else {
+      map.zoomOut(1, options);
+    }
   }
 
   async function fetchJson(path, maxChars) {
@@ -295,6 +463,27 @@
       .map(featureToRecord)
       .map(normalizer)
       .filter((item) => item.latitude !== null && item.longitude !== null);
+  }
+
+  function normalizePowerTileIndex(payload) {
+    const item = payload && typeof payload === "object" ? payload : {};
+    const tiles = Array.isArray(item.tiles) ? item.tiles : [];
+    return tiles
+      .map((tile) => {
+        const source = tile && typeof tile === "object" ? tile : {};
+        const bounds = Array.isArray(source.bounds) ? source.bounds.map(Number) : [];
+        const file = safePowerTilePath(source.file);
+        if (bounds.length !== 4 || bounds.some((value) => !Number.isFinite(value)) || !file) {
+          return null;
+        }
+        return {
+          key: safeText(source.key, 120) || file,
+          file,
+          bounds,
+          count: safeWholeNumber(source.count)
+        };
+      })
+      .filter(Boolean);
   }
 
   function featureToRecord(feature) {
@@ -645,6 +834,14 @@
     return text;
   }
 
+  function safePowerTilePath(value) {
+    const text = safeText(value, 240).replace(/\\/g, "/");
+    if (!text.startsWith("data/power-tiles/") || !text.endsWith(".geojson") || text.includes("..")) {
+      return "";
+    }
+    return text;
+  }
+
   function normalizeStatusGroup(status) {
     const text = safeText(status);
     return Object.prototype.hasOwnProperty.call(statusStyles, text) ? text : "Other";
@@ -766,7 +963,7 @@
     );
     return L.divIcon({
       html: wrapper,
-      className: "cluster-wrap",
+      className: `cluster-wrap ${label}-cluster-wrap`,
       iconSize: L.point(size, size)
     });
   }
@@ -807,7 +1004,7 @@
     const style = statusStyles[site.status_group] || statusStyles.Other;
     const size = markerSize(site);
     return L.divIcon({
-      className: "",
+      className: "dc-wrap",
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
       popupAnchor: [0, -size / 2],
@@ -1190,6 +1387,8 @@
   }
 
   function buildHeatPoints() {
+    if (heatPoints) return heatPoints;
+
     const dcPoints = dataCenters.map((site) => {
       const capacity = Number(site.capacity_mw);
       const weight = Number(site.landscape_weight);
@@ -1207,26 +1406,49 @@
       return [plant.latitude, plant.longitude, intensity];
     });
 
-    return dcPoints.concat(nuclearPoints);
+    heatPoints = dcPoints.concat(nuclearPoints);
+    return heatPoints;
+  }
+
+  function heatOptionsForZoom() {
+    const zoom = clamp(map.getZoom(), HEAT_BASE_ZOOM, VISIBILITY.heatMaxZoom);
+    const scale = Math.pow(HEAT_RADIUS_SCALE, zoom - HEAT_BASE_ZOOM);
+    return {
+      radius: Math.round(clamp(HEAT_BASE_RADIUS * scale, 30, 54)),
+      blur: Math.round(clamp(HEAT_BASE_BLUR * scale, 24, 46)),
+      maxZoom: VISIBILITY.heatMaxZoom,
+      gradient: HEAT_GRADIENT
+    };
   }
 
   function getHeatLayer() {
     if (heatLayer) return heatLayer;
 
-    heatLayer = L.heatLayer(buildHeatPoints(), {
-      radius: 34,
-      blur: 30,
-      maxZoom: 7,
-      gradient: {
-        0.18: "#22d3ee",
-        0.38: "#22c55e",
-        0.58: "#facc15",
-        0.78: "#fb7185",
-        1.0: "#a855f7"
-      }
-    });
+    heatLayer = L.heatLayer(buildHeatPoints(), heatOptionsForZoom());
 
     return heatLayer;
+  }
+
+  function scheduleHeatLayerRefresh() {
+    if (!heatLayer) return;
+    if (heatRefreshTimer) window.clearTimeout(heatRefreshTimer);
+    heatRefreshTimer = window.setTimeout(() => {
+      heatRefreshTimer = 0;
+      updateHeatLayerForZoom();
+    }, HEAT_REFRESH_DELAY_MS);
+  }
+
+  function updateHeatLayerForZoom() {
+    if (!heatLayer) return;
+    const options = heatOptionsForZoom();
+    if (typeof heatLayer.setOptions === "function") {
+      heatLayer.setOptions(options);
+    } else {
+      heatLayer.options = { ...heatLayer.options, ...options };
+    }
+    if (typeof heatLayer.redraw === "function") {
+      heatLayer.redraw();
+    }
   }
 
   function activeStatuses() {
@@ -1261,18 +1483,42 @@
   }
 
   function dataCenterLayerKey(statuses, query, visibility) {
+    const dataBubbleLayers = effectiveDataBubbleLayers(visibility);
     return [
       Array.from(statuses).sort().join(","),
       query,
-      visibility.dataHubs ? "hubs" : "no-hubs",
-      visibility.dataMarkers ? "markers" : "no-markers",
-      visibility.connectors && visibility.dataMarkers ? viewportKey(1) : "no-connectors"
+      dataBubbleLayers.hubs ? "hubs" : "no-hubs",
+      dataBubbleLayers.markers ? "markers" : "no-markers",
+      visibility.connectors && dataBubbleLayers.markers ? "connectors" : "no-connectors"
     ].join("|");
+  }
+
+  function effectiveDataBubbleLayers(visibility) {
+    const overlap = Boolean(dataBubbleTransitionMode);
+    return {
+      hubs: visibility.dataHubs || overlap,
+      markers: visibility.dataMarkers || overlap
+    };
   }
 
   function recordsInMapBounds(records, padding) {
     const bounds = map.getBounds().pad(padding);
     return records.filter((record) => bounds.contains([record.latitude, record.longitude]));
+  }
+
+  function tileIntersectsBounds(tile, bounds) {
+    const [south, west, north, east] = tile.bounds;
+    return (
+      south <= bounds.getNorth()
+      && north >= bounds.getSouth()
+      && west <= bounds.getEast()
+      && east >= bounds.getWest()
+    );
+  }
+
+  function powerTilesForViewport(tiles) {
+    const bounds = map.getBounds().pad(POWER_BOUNDS_PADDING);
+    return tiles.filter((tile) => tileIntersectsBounds(tile, bounds));
   }
 
   function siteMatchesSearch(site, query) {
@@ -1338,6 +1584,7 @@
     const statuses = activeStatuses();
     const query = searchInput.value.trim().toLowerCase();
     const visibility = layerVisibility();
+    const dataBubbleLayers = effectiveDataBubbleLayers(visibility);
     const filtered = filteredDataCenters(statuses, query);
     const renderKey = dataCenterLayerKey(statuses, query, visibility);
 
@@ -1346,27 +1593,36 @@
     if (renderKey === dataCenterRenderKey) return;
     dataCenterRenderKey = renderKey;
 
-    dcCluster.clearLayers();
-    dcHubLayer.clearLayers();
-    connectorLayer.clearLayers();
-
-    if (visibility.dataHubs) {
+    if (dataBubbleLayers.hubs) {
+      dcHubLayer.clearLayers();
       const hubs = hubsForSites(filtered);
       const hubMarkers = hubs.map((hub) => getHubMarker(hub));
       hubMarkers.forEach((marker) => dcHubLayer.addLayer(marker));
     }
 
-    if (visibility.dataMarkers) {
+    if (dataBubbleLayers.markers) {
+      dcCluster.clearLayers();
       const markers = filtered.map((site) => getDataCenterMarker(site));
       dcCluster.addLayers(markers);
 
       if (visibility.connectors) {
-        recordsInMapBounds(filtered, 0.25).forEach((site) => {
+        connectorLayer.clearLayers();
+        filtered.forEach((site) => {
           addProximityLine(site, "nuclear");
           addProximityLine(site, "power");
           addProximityLine(site, "water");
         });
       }
+    }
+
+    if (!visibility.connectors || !dataBubbleLayers.markers) {
+      connectorLayer.clearLayers();
+    }
+    if (!dataBubbleLayers.hubs) {
+      dcHubLayer.clearLayers();
+    }
+    if (!dataBubbleLayers.markers) {
+      dcCluster.clearLayers();
     }
   }
 
@@ -1422,6 +1678,7 @@
         weight: kind === "water" ? 2 : 2.4,
         opacity: style.opacity,
         dashArray: style.dashArray,
+        renderer: connectorRenderer,
         interactive: false
       }
       ));
@@ -1459,18 +1716,45 @@
     });
   }
 
-  async function getPowerPlants() {
-    if (powerPlants) return powerPlants;
-    if (!powerDataRequest) {
-      powerDataRequest = fetchJson(DATA_ENDPOINTS.powerPlants, MAX_POWER_DATA_CHARS)
-        .then((payload) => normalizeGeoJsonCollection(payload, normalizePowerPlant, MAX_POWER_RECORDS))
+  async function getPowerTileIndex() {
+    if (powerTileIndex) return powerTileIndex;
+    if (!powerTileIndexRequest) {
+      powerTileIndexRequest = fetchJson(DATA_ENDPOINTS.powerTileIndex, MAX_POWER_TILE_INDEX_CHARS)
+        .then(normalizePowerTileIndex)
         .catch((error) => {
-          powerDataRequest = null;
+          powerTileIndexRequest = null;
           throw error;
         });
     }
-    powerPlants = await powerDataRequest;
-    return powerPlants;
+    powerTileIndex = await powerTileIndexRequest;
+    return powerTileIndex;
+  }
+
+  function powerLayerRequestKey(tiles) {
+    return `${viewportKey(2)}|${tiles.map((tile) => tile.file).join(",")}`;
+  }
+
+  async function getPowerTileRecords(tile) {
+    if (!powerTileCache.has(tile.file)) {
+      powerTileCache.set(tile.file, fetchJson(tile.file, MAX_POWER_TILE_CHARS)
+        .then((payload) => normalizeGeoJsonCollection(payload, normalizePowerPlant, MAX_POWER_RECORDS))
+        .catch((error) => {
+          powerTileCache.delete(tile.file);
+          throw error;
+        }));
+    }
+    return powerTileCache.get(tile.file);
+  }
+
+  async function getPowerPlantsForViewport() {
+    const tiles = powerTilesForViewport(await getPowerTileIndex());
+    const requestKey = powerLayerRequestKey(tiles);
+    powerRequestKey = requestKey;
+    const groups = await Promise.all(tiles.map(getPowerTileRecords));
+    return {
+      requestKey,
+      plants: groups.flat()
+    };
   }
 
   function ensurePowerCluster() {
@@ -1478,7 +1762,7 @@
     powerCluster = L.markerClusterGroup({
       showCoverageOnHover: false,
       spiderfyOnMaxZoom: false,
-      removeOutsideVisibleBounds: true,
+      removeOutsideVisibleBounds: false,
       animate: false,
       animateAddingMarkers: false,
       maxClusterRadius: 38,
@@ -1506,11 +1790,28 @@
   }
 
   function schedulePowerLayerRefresh() {
+    if (isZooming) return;
+    if (powerRefreshTimer) window.clearTimeout(powerRefreshTimer);
     if (powerRefreshFrame) cancelAnimationFrame(powerRefreshFrame);
-    powerRefreshFrame = requestAnimationFrame(() => {
+    powerRefreshTimer = window.setTimeout(() => {
+      powerRefreshTimer = 0;
+      if (isZooming) return;
+      powerRefreshFrame = requestAnimationFrame(() => {
+        powerRefreshFrame = 0;
+        refreshPowerLayer().catch(showDataError);
+      });
+    }, POWER_REFRESH_DELAY_MS);
+  }
+
+  function cancelPowerLayerRefresh() {
+    if (powerRefreshTimer) {
+      window.clearTimeout(powerRefreshTimer);
+      powerRefreshTimer = 0;
+    }
+    if (powerRefreshFrame) {
+      cancelAnimationFrame(powerRefreshFrame);
       powerRefreshFrame = 0;
-      refreshPowerLayer().catch(showDataError);
-    });
+    }
   }
 
   async function refreshPowerLayer() {
@@ -1524,10 +1825,12 @@
     const cluster = ensurePowerCluster();
     toggleMapLayer(cluster, true);
 
-    const plants = await getPowerPlants();
+    const { requestKey, plants } = await getPowerPlantsForViewport();
+    if (requestKey !== powerRequestKey || !layerVisibility().power) return;
+
     const visiblePlants = recordsInMapBounds(plants, POWER_BOUNDS_PADDING)
       .slice(0, MAX_RENDERED_POWER_MARKERS);
-    const renderKey = `${viewportKey(2)}|${visiblePlants.map((plant) => plant.key).join(",")}`;
+    const renderKey = `${requestKey}|${visiblePlants.map((plant) => plant.key).join(",")}`;
     if (renderKey === powerRenderKey) return;
 
     powerRenderKey = renderKey;
@@ -1537,21 +1840,25 @@
 
   function syncLayerToggles() {
     const visibility = layerVisibility();
-    toggleMapLayer(dcHubLayer, visibility.dataHubs);
-    toggleMapLayer(dcCluster, visibility.dataMarkers);
-    toggleMapLayer(connectorLayer, visibility.connectors && visibility.dataMarkers);
+    const dataBubbleLayers = effectiveDataBubbleLayers(visibility);
+    toggleMapLayer(dcHubLayer, dataBubbleLayers.hubs);
+    toggleMapLayer(dcCluster, dataBubbleLayers.markers);
+    toggleMapLayer(connectorLayer, visibility.connectors && dataBubbleLayers.markers);
     toggleMapLayer(nuclearLayer, visibility.nuclear);
     toggleMapLayer(waterLayer, visibility.water);
 
     if (visibility.power) {
       schedulePowerLayerRefresh();
     } else if (powerCluster) {
+      cancelPowerLayerRefresh();
       toggleMapLayer(powerCluster, false);
       powerRenderKey = "";
     }
 
     if (visibility.heat) {
-      toggleMapLayer(getHeatLayer(), true);
+      const layer = getHeatLayer();
+      updateHeatLayerForZoom();
+      toggleMapLayer(layer, true);
     } else if (heatLayer) {
       toggleMapLayer(heatLayer, false);
     }

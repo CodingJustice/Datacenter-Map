@@ -29,6 +29,7 @@ PUBLIC_FILES = {
     "/app.js": "app.js",
 }
 PUBLIC_DATA_SUFFIXES = {".json", ".geojson"}
+GZIP_ELIGIBLE_SUFFIXES = {".html", ".css", ".js", ".json", ".geojson"}
 
 BASE_CSP = (
     "default-src 'self'; "
@@ -136,21 +137,36 @@ class MapRequestHandler(SimpleHTTPRequestHandler):
         if not path:
             self.send_error(HTTPStatus.NOT_FOUND)
             return None
+        response_path, is_gzip = self.encoded_response_path(path)
 
         try:
-            handle = path.open("rb")
+            handle = response_path.open("rb")
         except OSError:
             self.send_error(HTTPStatus.NOT_FOUND)
             return None
 
-        stat = path.stat()
+        stat = response_path.stat()
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", self.guess_type(str(path)))
         self.send_header("Content-Length", str(stat.st_size))
         self.send_header("Last-Modified", self.date_time_string(stat.st_mtime))
+        if is_gzip:
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Vary", "Accept-Encoding")
         self.send_cache_headers(path)
         self.end_headers()
         return handle
+
+    def encoded_response_path(self, path: Path) -> tuple[Path, bool]:
+        accept_encoding = self.headers.get("Accept-Encoding", "").lower()
+        gzip_path = Path(f"{path}.gz")
+        if (
+            "gzip" in accept_encoding
+            and path.suffix.lower() in GZIP_ELIGIBLE_SUFFIXES
+            and gzip_path.is_file()
+        ):
+            return gzip_path, True
+        return path, False
 
     def resolve_public_path(self) -> Path | None:
         request_path = urlsplit(self.path).path
@@ -174,7 +190,11 @@ class MapRequestHandler(SimpleHTTPRequestHandler):
         return resolved if resolved.is_file() else None
 
     def send_cache_headers(self, path: Path) -> None:
-        if path.parent.name == "data":
+        try:
+            relative = path.resolve().relative_to(ROOT)
+        except ValueError:
+            relative = Path()
+        if relative.parts and relative.parts[0] == "data":
             self.send_header("Cache-Control", "public, max-age=3600, must-revalidate")
         else:
             self.send_header("Cache-Control", "no-cache")

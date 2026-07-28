@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import csv
 import datetime as dt
+import gzip
 import hashlib
 import json
 import math
@@ -228,6 +229,8 @@ DETAIL_SHARD_COUNTS = {
     "nuclear-plants": 1,
     "water-sources": 1,
 }
+
+POWER_TILE_GRID_DEGREES = 4
 
 DATA_CENTER_SEARCH_FIELDS = [
     "name",
@@ -1248,6 +1251,75 @@ def data_center_hub_collection(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def power_tile_axis(value: int, positive_prefix: str, negative_prefix: str) -> str:
+    prefix = positive_prefix if value >= 0 else negative_prefix
+    return f"{prefix}{abs(value):03d}"
+
+
+def power_tile_key(latitude: float, longitude: float) -> tuple[str, int, int]:
+    south = math.floor(latitude / POWER_TILE_GRID_DEGREES) * POWER_TILE_GRID_DEGREES
+    west = math.floor(longitude / POWER_TILE_GRID_DEGREES) * POWER_TILE_GRID_DEGREES
+    key = f"power-{power_tile_axis(south, 'n', 's')}-{power_tile_axis(west, 'e', 'w')}"
+    return key, south, west
+
+
+def write_power_tile_files(
+    output_dir: Path,
+    records: list[dict[str, Any]],
+    generated_at: str,
+) -> list[dict[str, Any]]:
+    tiles_dir = resolve_output_dir(output_dir / "power-tiles")
+    for stale_file in tiles_dir.glob("*.geojson*"):
+        stale_file.unlink()
+    index_path = tiles_dir / "index.json"
+    if index_path.exists():
+        index_path.unlink()
+    index_gzip_path = Path(f"{index_path}.gz")
+    if index_gzip_path.exists():
+        index_gzip_path.unlink()
+
+    grouped: dict[tuple[str, int, int], list[dict[str, Any]]] = {}
+    for record in records:
+        latitude = safe_float(record.get("latitude"))
+        longitude = safe_float(record.get("longitude"))
+        if latitude is None or longitude is None:
+            continue
+        if latitude < -90 or latitude > 90 or longitude < -180 or longitude > 180:
+            continue
+        key, south, west = power_tile_key(latitude, longitude)
+        grouped.setdefault((key, south, west), []).append(record)
+
+    output_files: list[dict[str, Any]] = []
+    manifest_tiles: list[dict[str, Any]] = []
+    for (key, south, west), items in sorted(grouped.items()):
+        filename = f"power-tiles/{key}.geojson"
+        path = output_dir / filename
+        write_json(path, feature_collection(items, "power", "power-plants"))
+        manifest_tiles.append({
+            "key": key,
+            "file": f"data/{filename}",
+            "bounds": [
+                south,
+                west,
+                south + POWER_TILE_GRID_DEGREES,
+                west + POWER_TILE_GRID_DEGREES,
+            ],
+            "count": len(items),
+        })
+        output_files.append(file_record("powerTile", path))
+
+    write_json(index_path, {
+        "generatedAt": generated_at,
+        "layer": "power",
+        "gridDegrees": POWER_TILE_GRID_DEGREES,
+        "tileCount": len(manifest_tiles),
+        "recordCount": sum(tile["count"] for tile in manifest_tiles),
+        "tiles": manifest_tiles,
+    })
+    output_files.append(file_record("powerTileIndex", index_path))
+    return output_files
+
+
 def write_detail_files(
     output_dir: Path,
     stem: str,
@@ -1278,10 +1350,10 @@ def write_detail_files(
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path = resolve_output_file(path, {".json", ".geojson"}, "Map data file")
-    path.write_text(
-        json.dumps(payload, ensure_ascii=True, allow_nan=False, separators=(",", ":")),
-        encoding="utf-8",
-    )
+    text = json.dumps(payload, ensure_ascii=True, allow_nan=False, separators=(",", ":"))
+    path.write_text(text, encoding="utf-8")
+    with gzip.open(f"{path}.gz", "wt", encoding="utf-8", compresslevel=9) as handle:
+        handle.write(text)
 
 
 def sha256_file(path: Path) -> str:
@@ -1294,12 +1366,17 @@ def sha256_file(path: Path) -> str:
 
 def file_record(label: str, path: Path) -> dict[str, Any]:
     path = project_path(path)
-    return {
+    record = {
         "label": label,
         "file": path.name,
         "bytes": path.stat().st_size,
         "sha256": sha256_file(path),
     }
+    gzip_path = Path(f"{path}.gz")
+    if gzip_path.exists():
+        record["gzipBytes"] = gzip_path.stat().st_size
+        record["gzipSha256"] = sha256_file(gzip_path)
+    return record
 
 
 def source_metadata() -> list[dict[str, str]]:
@@ -1348,6 +1425,7 @@ def summary_payload(
             "dataCenters": "data-centers.geojson",
             "nuclearPlants": "nuclear-plants.geojson",
             "powerPlants": "power-plants.geojson",
+            "powerTiles": "power-tiles/index.json",
             "waterSources": "water-sources.geojson",
             "details": {
                 "dataCenters": "details/data-centers-00.json",
@@ -1371,7 +1449,7 @@ def write_map_data_files(
     output_dir = resolve_output_dir(output_dir)
     details_dir = output_dir / "details"
     if details_dir.exists():
-        for stale_file in details_dir.glob("*.json"):
+        for stale_file in details_dir.glob("*.json*"):
             stale_file.unlink()
 
     files = [
@@ -1410,6 +1488,11 @@ def write_map_data_files(
         "power",
         power_plants,
         POWER_FIELDS,
+        generated_at,
+    ))
+    output_files.extend(write_power_tile_files(
+        output_dir,
+        power_plants,
         generated_at,
     ))
     output_files.extend(write_detail_files(

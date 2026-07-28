@@ -26,6 +26,10 @@ comes from public facility records.
 - `data/map-summary.json` contains generated counts, source metadata, and
   source/change records.
 - `data/*.geojson` contains the generated Leaflet point layers.
+- `data/power-tiles/index.json` and `data/power-tiles/*.geojson` shard the
+  large power layer by map viewport so clients avoid one large power fetch.
+- Generated `.json` and `.geojson` files also get `.gz` sidecars for servers
+  that can serve compressed static assets.
 - `private/map-data.sqlite` is an ignored local SQLite test export for
   production-readiness experiments. It is not served by `server.py`.
 - `water_sources.csv` contains the named water-reference points used for
@@ -79,9 +83,9 @@ python script.py --skip-sqlite
 The current app is prepared as a static Leaflet experience for integration into
 the INCOMPAS webpage. Keep the browser-facing contract simple:
 
-- Host `us_ai_datacenters_nuclear_map.html`, `styles.css`, `app.js`, and
-  `data/*.json` / `data/*.geojson` from the same INCOMPAS origin whenever
-  possible.
+- Host `us_ai_datacenters_nuclear_map.html`, `styles.css`, `app.js`,
+  `data/*.json`, `data/*.geojson`, and their generated `.gz` sidecars from the
+  same INCOMPAS origin whenever possible.
 - Do not publish raw CSVs, cached Excel workbooks, Compute Atlas source JSON,
   Python scripts, private folders, certificates, logs, or SQLite files.
 - Coordinate the production CSP with the parent INCOMPAS site. If this map is
@@ -132,20 +136,45 @@ final production data store.
 ## Security And Performance
 
 - No Java loader is used. The browser fetches JSON/GeoJSON, not executable data.
-- The large power layer is lazy-fetched only when the Power toggle is enabled
-  and renders only power markers in the padded visible viewport, capped to avoid
-  long main-thread stalls on slower devices.
+- The large power layer is lazy-fetched only when the Power toggle is enabled.
+  The browser first loads `data/power-tiles/index.json`, then fetches only
+  intersecting `data/power-tiles/*.geojson` shards for the padded visible
+  viewport.
+- Power markers still use runtime marker clustering, but the shard manifest
+  keeps each client fetch small. Current generated data contains 108 power
+  tiles for 15,975 records.
+- Zoom and pan work is coalesced so expensive marker, connector, and power
+  cluster refreshes run after the map interaction settles instead of during the
+  animation.
+- Data-center and power marker clusters keep offscreen markers attached during
+  movement so bubbles do not blink out at viewport edges while panning or
+  zooming.
+- Crossing the data-center zoom threshold briefly overlaps the hub and facility
+  marker layers, animating hubs outward while smaller data-center bubbles pop
+  in, and reversing that effect when zooming back out.
+- Once the proximity layer is visible, lines are built for the active filtered
+  dataset with a padded Canvas renderer instead of being clipped to the current
+  viewport, so lines remain anchored during zoom and pan transitions without
+  creating thousands of DOM paths.
+- Base map tiles update during zoom with a larger surrounding tile buffer and
+  fade transitions so users do not see blank/black gaps while zooming.
+- Touchpad and wheel zoom gestures are normalized to the same one-level,
+  center-based zoom steps used by the `+` and `-` controls.
+- Heatmap points are cached, then the heat radius and blur are updated after
+  zoom settles so hot areas stay anchored to the same facilities and do not
+  visually drift during zoom.
 - Data-center marker refreshes use a render-key cache so repeated zoom/move
   events do not clear and rebuild layers when filter state and visible layer
   mode have not changed.
-- Proximity lines render only for data centers near the current viewport.
 - Upstream collection uses allowlisted HTTPS hosts, TLS verification, response
   size limits, JSON-shape validation, and workbook zip-bomb checks.
 - CSV exports protect text fields from spreadsheet formula injection.
 - A private SQLite test database is generated with parameterized inserts,
   metadata/change-record tables, and indexes for common map queries.
 - The static server allows only `GET`, `HEAD`, and `OPTIONS`; upload/write
-  methods are rejected.
+  methods are rejected. When a generated gzip sidecar exists and the client
+  advertises gzip support, it serves the compressed sidecar with the original
+  content type.
 - The static server serves only the HTML, CSS, JS, and generated `data/`
   artifacts. Raw CSVs, Excel caches, scripts, keys, and local private files are
   not public routes.

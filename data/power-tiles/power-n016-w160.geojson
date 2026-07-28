@@ -1,0 +1,1 @@
+{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[-156.028,19.732]},"properties":{"key":"8083-44e81aa9","layer":"power","name":"Keahole","state":"HI","detail_file":"data/details/power-plants-60.json","plant_id":"8083","capacity_mw":89.1,"status_group":"Operating","energy_sources":"DFO","type":"Power plant","is_nuclear":false}}]}
