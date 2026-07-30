@@ -8,8 +8,9 @@ comes from public facility records.
 
 ## Files
 
-- `us_ai_datacenters_nuclear_map.html` defines the page structure, CSP,
-  controls, and script loading order.
+- `us_ai_datacenters_nuclear_map.html` defines the page structure, controls,
+  and script loading order. CSP and related security policy are enforced by
+  HTTP response headers.
 - `styles.css` controls the INCOMPAS-themed map, marker, popup, and responsive
   layout styling.
 - `app.js` powers the Leaflet map, safe DOM rendering, filters, popups, lazy
@@ -23,22 +24,31 @@ comes from public facility records.
   JSON/GeoJSON map data, and a private SQLite test database.
 - `server.py` serves only public map assets with security headers, restrictive
   CORS, and rate limiting.
+- `vendor/` contains pinned, self-hosted Leaflet, MarkerCluster, and heatmap
+  assets with SHA-384 verification hashes recorded in
+  `vendor/THIRD_PARTY_ASSETS.json`.
+- `tools/security/` contains the OWASP ZAP baseline wrapper and a deployment
+  header/TLS checker for staging reviews.
 - `data/map-summary.json` contains generated counts, source metadata, and
   source/change records.
 - `data/*.geojson` contains the generated Leaflet point layers.
+- `data/us-reference-map.geojson` is the default local Census-derived
+  state-boundary base map, so points still plot over U.S. geography if raster
+  tiles are unavailable.
 - `data/power-tiles/index.json` and `data/power-tiles/*.geojson` shard the
   large power layer by map viewport so clients avoid one large power fetch.
 - Generated `.json` and `.geojson` files also get `.gz` sidecars for servers
   that can serve compressed static assets.
-- `private/map-data.sqlite` is an ignored local SQLite test export for
-  production-readiness experiments. It is not served by `server.py`.
-- `water_sources.csv` contains the named water-reference points used for
-  proximity calculations.
+- `private/inputs/`, `private/cache/`, and `private/map-data.sqlite` are
+  ignored local generator inputs, cache files, and SQLite output. They are not
+  served by `server.py`.
+- `private/inputs/water_sources.csv` is the local named water-reference input
+  used for proximity calculations.
 
 ## Current Data
 
-- 422 public data-center facility records from Compute Atlas.
-- 15,975 operating and planned power-plant records from EIA-860M plus Compute
+- 684 public data-center facility records from Compute Atlas.
+- 16,110 operating and planned power-plant records from EIA-860M plus Compute
   Atlas power-generation project records.
 - 63 nuclear operating, planned, restart, or SMR-related records.
 - 41 named water-source reference points for proximity context.
@@ -69,7 +79,7 @@ python script.py --refresh-compute-atlas --refresh-eia
 Useful options:
 
 ```powershell
-python script.py --compute-atlas-json compute-atlas-data-centers.json --water-sources water_sources.csv --output-dir data --output-db private/map-data.sqlite
+python script.py --compute-atlas-json private/inputs/compute-atlas-data-centers.json --water-sources private/inputs/water_sources.csv --output-dir data --output-db private/map-data.sqlite
 ```
 
 Skip the SQLite test export when you only need static map files:
@@ -83,16 +93,17 @@ python script.py --skip-sqlite
 The current app is prepared as a static Leaflet experience for integration into
 the INCOMPAS webpage. Keep the browser-facing contract simple:
 
-- Host `us_ai_datacenters_nuclear_map.html`, `styles.css`, `app.js`,
+- Host `us_ai_datacenters_nuclear_map.html`, `styles.css`, `app.js`, `vendor/`,
   `data/*.json`, `data/*.geojson`, and their generated `.gz` sidecars from the
   same INCOMPAS origin whenever possible.
 - Do not publish raw CSVs, cached Excel workbooks, Compute Atlas source JSON,
   Python scripts, private folders, certificates, logs, or SQLite files.
 - Coordinate the production CSP with the parent INCOMPAS site. If this map is
   embedded as an iframe, replace `frame-ancestors 'none'` with the exact
-  INCOMPAS parent origin in both the HTML meta policy and server/proxy headers.
-- Keep external allowlists narrow: Leaflet CDN scripts/styles, approved map tile
-  image hosts, same-origin data connections, and no forms/workers/objects.
+  INCOMPAS parent origin in the server/proxy headers.
+- Keep external allowlists narrow: self-hosted dependency scripts/styles,
+  approved map tile image hosts, same-origin data connections, approved HTTPS
+  source-link domains, and no forms/workers/objects.
 - The SQLite export is for testing a future backend data store. It should be
   opened read-only by any API prototype and converted to a managed database or
   immutable artifact pipeline before final production.
@@ -103,6 +114,18 @@ Run the hardened local server and open the URL it prints:
 
 ```powershell
 python server.py --host 127.0.0.1 --port 8000
+```
+
+Verify that the backend is serving the required data and browser assets:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/health.json
+```
+
+If a VS Code preview or browser blocks Leaflet, open the local SVG renderer:
+
+```text
+http://127.0.0.1:8000/?renderer=svg
 ```
 
 For HTTPS in production, place this app behind a TLS-terminating proxy or run
@@ -142,7 +165,7 @@ final production data store.
   viewport.
 - Power markers still use runtime marker clustering, but the shard manifest
   keeps each client fetch small. Current generated data contains 108 power
-  tiles for 15,975 records.
+  tiles for 16,110 records.
 - Zoom and pan work is coalesced so expensive marker, connector, and power
   cluster refreshes run after the map interaction settles instead of during the
   animation.
@@ -156,6 +179,11 @@ final production data store.
   dataset with a padded Canvas renderer instead of being clipped to the current
   viewport, so lines remain anchored during zoom and pan transitions without
   creating thousands of DOM paths.
+- Proximity-line refreshes are cached separately from data-center bubble
+  refreshes, so toggling proximity or moving the map does not rebuild all
+  facility markers.
+- The accessible results list renders in small animation-frame chunks, avoiding
+  one large DOM update when hundreds of records match a filter.
 - Base map tiles update during zoom with a larger surrounding tile buffer and
   fade transitions so users do not see blank/black gaps while zooming.
 - Touchpad and wheel zoom gestures are normalized to the same one-level,
@@ -163,6 +191,11 @@ final production data store.
 - Heatmap points are cached, then the heat radius and blur are updated after
   zoom settles so hot areas stay anchored to the same facilities and do not
   visually drift during zoom.
+- A self-hosted U.S. reference map is the default base layer below the point
+  layers, so the map remains usable when third-party raster tiles are
+  unavailable or blocked.
+- A local SVG map renderer can take over if Leaflet does not load, and can be
+  forced with `?renderer=svg` for debugging local server or VS Code issues.
 - Data-center marker refreshes use a render-key cache so repeated zoom/move
   events do not clear and rebuild layers when filter state and visible layer
   mode have not changed.
@@ -179,9 +212,10 @@ final production data store.
   artifacts. Raw CSVs, Excel caches, scripts, keys, and local private files are
   not public routes.
 - The browser renders data through DOM APIs and `textContent`; source links are
-  limited to `http` and `https` with `noopener noreferrer`.
-- CSP restricts scripts, styles, map tile images, fonts, frames, forms, objects,
-  workers, and browser connections.
+  limited to approved HTTPS hostnames with `noopener noreferrer`; unapproved or
+  non-HTTPS source URLs render as plain text.
+- CSP is enforced by HTTP response headers and restricts scripts, styles, map
+  tile images, fonts, frames, forms, objects, workers, and browser connections.
 - CORS is same-origin by default. Cross-origin access must be explicitly
   allowlisted with `MAP_ALLOWED_ORIGINS`.
 - Rate limiting defaults to 300 requests per minute per client address and can
@@ -191,10 +225,30 @@ final production data store.
 - SQLite is a local test export only and is not served. If a production database
   is added, use least-privilege service accounts and parameterized queries only.
 - Secure headers include CSP, `nosniff`, `DENY` framing, referrer policy,
-  permissions policy, COOP, CORP, and HSTS when served over HTTPS.
-- Dependency versions are pinned in the HTML. As of this update, the pinned
-  Leaflet, MarkerCluster, and Leaflet.heat versions match the latest stable npm
-  package releases.
+  permissions policy, COOP, CORP, origin agent clustering, Flash cross-domain
+  blocking, download hardening, and HSTS when served over HTTPS.
+- Dependency versions are pinned and self-hosted under `vendor/`; SHA-384
+  hashes are recorded in `vendor/THIRD_PARTY_ASSETS.json` for review. The
+  former `unpkg` runtime dependency has been removed from the browser and CSP
+  paths.
+
+## OWASP Staging Checks
+
+Run the deployment header/TLS check against staging before release:
+
+```powershell
+python tools/security/check_headers_tls.py https://staging.example.org/path/to/map/
+```
+
+Run the OWASP ZAP baseline scan against the same staging URL:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/security/run_zap_baseline.ps1 -TargetUrl https://staging.example.org/path/to/map/ -FailOnWarn
+```
+
+The ZAP wrapper writes HTML, Markdown, and JSON reports to
+`security-reports/`. A clean scan is review evidence, not a legal certification
+or proof that no vulnerabilities exist.
 
 ## Data Notes
 

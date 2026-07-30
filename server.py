@@ -8,6 +8,7 @@ It does not accept uploads or user-submitted records.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import ssl
 import sys
@@ -21,6 +22,7 @@ from urllib.parse import urlsplit
 
 
 ROOT = Path(__file__).resolve().parent
+HEALTH_PATH = "/health.json"
 PUBLIC_FILES = {
     "/": "us_ai_datacenters_nuclear_map.html",
     "/us_ai_datacenters_nuclear_map.html": "us_ai_datacenters_nuclear_map.html",
@@ -29,7 +31,30 @@ PUBLIC_FILES = {
     "/app.js": "app.js",
 }
 PUBLIC_DATA_SUFFIXES = {".json", ".geojson"}
+PUBLIC_VENDOR_SUFFIXES = {".css", ".js", ".png"}
 GZIP_ELIGIBLE_SUFFIXES = {".html", ".css", ".js", ".json", ".geojson"}
+CONTENT_TYPES = {
+    ".html": "text/html; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".geojson": "application/geo+json; charset=utf-8",
+    ".png": "image/png",
+}
+HEALTH_CHECK_FILES = (
+    "data/map-summary.json",
+    "data/us-reference-map.geojson",
+    "data/data-center-hubs.geojson",
+    "data/data-centers.geojson",
+    "data/nuclear-plants.geojson",
+    "data/water-sources.geojson",
+    "vendor/leaflet/leaflet.js",
+    "vendor/leaflet/leaflet.css",
+    "vendor/leaflet.markercluster/leaflet.markercluster.js",
+    "vendor/leaflet.heat/leaflet-heat.js",
+    "app.js",
+    "styles.css",
+)
 
 BASE_CSP = (
     "default-src 'self'; "
@@ -37,10 +62,10 @@ BASE_CSP = (
     "object-src 'none'; "
     "form-action 'none'; "
     "frame-ancestors 'none'; "
-    "script-src 'self' https://unpkg.com; "
+    "script-src 'self'; "
     "script-src-attr 'none'; "
-    "style-src 'self' https://unpkg.com 'unsafe-inline'; "
-    "img-src 'self' data: https://unpkg.com https://*.basemaps.cartocdn.com "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: https://*.basemaps.cartocdn.com "
     "https://server.arcgisonline.com https://*.arcgisonline.com; "
     "font-src 'self' data:; "
     "connect-src 'self'; "
@@ -76,6 +101,9 @@ class MapRequestHandler(SimpleHTTPRequestHandler):
     def do_GET(self) -> None:
         if not self.check_rate_limit():
             return
+        if self.is_health_request():
+            self.send_health(include_body=True)
+            return
         handle = self.send_head()
         if handle:
             try:
@@ -85,6 +113,9 @@ class MapRequestHandler(SimpleHTTPRequestHandler):
 
     def do_HEAD(self) -> None:
         if not self.check_rate_limit():
+            return
+        if self.is_health_request():
+            self.send_health(include_body=False)
             return
         handle = self.send_head()
         if handle:
@@ -120,6 +151,20 @@ class MapRequestHandler(SimpleHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(b"Method not allowed.\n")
 
+    def is_health_request(self) -> bool:
+        return urlsplit(self.path).path == HEALTH_PATH
+
+    def send_health(self, include_body: bool) -> None:
+        payload = build_health_payload()
+        body = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        self.send_response(HTTPStatus.OK if payload["ok"] else HTTPStatus.SERVICE_UNAVAILABLE)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        if include_body:
+            self.wfile.write(body)
+
     def check_rate_limit(self) -> bool:
         allowed, retry_after = self.server.rate_limiter.allow(self.client_address[0])
         if allowed:
@@ -147,7 +192,7 @@ class MapRequestHandler(SimpleHTTPRequestHandler):
 
         stat = response_path.stat()
         self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", self.guess_type(str(path)))
+        self.send_header("Content-Type", content_type_for(path))
         self.send_header("Content-Length", str(stat.st_size))
         self.send_header("Last-Modified", self.date_time_string(stat.st_mtime))
         if is_gzip:
@@ -179,6 +224,13 @@ class MapRequestHandler(SimpleHTTPRequestHandler):
             if Path(parts[-1]).suffix.lower() not in PUBLIC_DATA_SUFFIXES:
                 return None
             candidate = ROOT.joinpath(*parts)
+        elif request_path.startswith("/vendor/"):
+            parts = PurePosixPath(request_path.lstrip("/")).parts
+            if len(parts) < 2 or parts[0] != "vendor" or any(part in {"", ".", ".."} for part in parts):
+                return None
+            if Path(parts[-1]).suffix.lower() not in PUBLIC_VENDOR_SUFFIXES:
+                return None
+            candidate = ROOT.joinpath(*parts)
         else:
             return None
 
@@ -196,6 +248,8 @@ class MapRequestHandler(SimpleHTTPRequestHandler):
             relative = Path()
         if relative.parts and relative.parts[0] == "data":
             self.send_header("Cache-Control", "public, max-age=3600, must-revalidate")
+        elif relative.parts and relative.parts[0] == "vendor":
+            self.send_header("Cache-Control", "public, max-age=604800, immutable")
         else:
             self.send_header("Cache-Control", "no-cache")
 
@@ -216,6 +270,9 @@ class MapRequestHandler(SimpleHTTPRequestHandler):
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()")
         self.send_header("Cross-Origin-Opener-Policy", "same-origin")
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        self.send_header("Origin-Agent-Cluster", "?1")
+        self.send_header("X-Permitted-Cross-Domain-Policies", "none")
+        self.send_header("X-Download-Options", "noopen")
 
     def send_cors_headers(self) -> None:
         origin = self.headers.get("Origin", "")
@@ -233,6 +290,48 @@ class MapRequestHandler(SimpleHTTPRequestHandler):
 
     def log_message(self, format: str, *args: object) -> None:
         sys.stderr.write(f"{self.log_date_time_string()} {format % args}\n")
+
+
+def build_health_payload() -> dict[str, object]:
+    files: list[dict[str, object]] = []
+    for relative_path in HEALTH_CHECK_FILES:
+        path = (ROOT / relative_path).resolve()
+        try:
+            path.relative_to(ROOT)
+        except ValueError:
+            exists = False
+            size = 0
+        else:
+            exists = path.is_file()
+            size = path.stat().st_size if exists else 0
+        files.append({
+            "path": relative_path,
+            "exists": exists,
+            "bytes": size,
+        })
+
+    summary_path = ROOT / "data" / "map-summary.json"
+    generated_at = ""
+    record_counts: dict[str, object] = {}
+    try:
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        generated_at = str(summary.get("generatedAt", ""))
+        counts = summary.get("recordCounts", {})
+        if isinstance(counts, dict):
+            record_counts = counts
+    except (OSError, json.JSONDecodeError):
+        pass
+
+    return {
+        "ok": all(item["exists"] and item["bytes"] for item in files),
+        "generatedAt": generated_at,
+        "recordCounts": record_counts,
+        "files": files,
+    }
+
+
+def content_type_for(path: Path) -> str:
+    return CONTENT_TYPES.get(path.suffix.lower(), "application/octet-stream")
 
 
 def positive_int(value: str) -> int:

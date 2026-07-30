@@ -18,7 +18,14 @@
   const MAX_POWER_TILE_INDEX_CHARS = 350_000;
   const MAX_POWER_TILE_CHARS = 1_200_000;
   const MAX_DETAIL_DATA_CHARS = 900_000;
+  const MAX_REFERENCE_MAP_CHARS = 250_000;
+  const APP_VERSION = "map-drawer-20260730";
+  const FORCE_SVG_FALLBACK = new URLSearchParams(window.location.search).get("renderer") === "svg";
   const MAX_RENDERED_POWER_MARKERS = 1600;
+  const RESULT_RENDER_CHUNK_SIZE = 80;
+  const FALLBACK_MAP_WIDTH = 1000;
+  const FALLBACK_MAP_HEIGHT = 620;
+  const FALLBACK_MARKER_LIMIT = 900;
   const POWER_BOUNDS_PADDING = 0.35;
   const MAX_ANIMATED_MOVE_METERS = 450_000;
   const SELECTED_RESULT_ZOOM = 8;
@@ -29,6 +36,7 @@
   const TOUCHPAD_ZOOM_STEP_DELTA = 90;
   const TOUCHPAD_ZOOM_COOLDOWN_MS = 220;
   const TOUCHPAD_ZOOM_RESET_MS = 180;
+  const CONTROL_DRAWER_RESIZE_DELAY_MS = 220;
   const HEAT_BASE_RADIUS = 34;
   const HEAT_BASE_BLUR = 30;
   const HEAT_BASE_ZOOM = 4;
@@ -46,12 +54,210 @@
 
   const DATA_ENDPOINTS = Object.freeze({
     summary: "data/map-summary.json",
+    referenceMap: "data/us-reference-map.geojson",
     dataCenterHubs: "data/data-center-hubs.geojson",
     dataCenters: "data/data-centers.geojson",
     nuclearPlants: "data/nuclear-plants.geojson",
     powerTileIndex: "data/power-tiles/index.json",
     waterSources: "data/water-sources.geojson"
   });
+
+  const APPROVED_SOURCE_HOSTS = new Set([
+    "about.fb.com",
+    "alaskapublic.org",
+    "aligneddc.com",
+    "appleinsider.com",
+    "azbex.com",
+    "azluminaria.org",
+    "baxtel.com",
+    "bealeinfra.com",
+    "blog.google",
+    "blogs.microsoft.com",
+    "businessnc.com",
+    "cardinalnews.org",
+    "cedar-rapids.org",
+    "ceqanet.lci.ca.gov",
+    "cityoflaporte.com",
+    "cleanview.co",
+    "cloudhq.com",
+    "co.caroline.va.us",
+    "cologix.com",
+    "communityimpact.com",
+    "conchoobserver.com",
+    "constructionreviewonline.com",
+    "ctmirror.org",
+    "daltoncitizen.com",
+    "datacenters.atmeta.com",
+    "datacenters.google",
+    "eaglemountain.gov",
+    "edgecore.com",
+    "edged.us",
+    "elpasomatters.org",
+    "en.wikipedia.org",
+    "epoch.ai",
+    "events.in.gov",
+    "flatwaterfreepress.org",
+    "gis.franklincountyohio.gov",
+    "gis.lickingcounty.gov",
+    "goed.nv.gov",
+    "governor.alabama.gov",
+    "governor.wv.gov",
+    "governorreeves.ms.gov",
+    "heatmap.news",
+    "hntrbrk.com",
+    "inewsource.org",
+    "interestingengineering.com",
+    "investors.corescientific.com",
+    "investors.coreweave.com",
+    "investors.terawulf.com",
+    "ir.ameresco.com",
+    "ir.applieddigital.com",
+    "ir.bitdeer.com",
+    "ir.talenenergy.com",
+    "irisenergy.gcs-web.com",
+    "johnsoncountypost.com",
+    "lambda.ai",
+    "local.microsoft.com",
+    "mesanow.org",
+    "minnesotareformer.com",
+    "mississippi.org",
+    "mlq.ai",
+    "nebius.com",
+    "news.constructconnect.com",
+    "news.microsoft.com",
+    "newsroom.xcelenergy.com",
+    "oklo.com",
+    "openai.com",
+    "patch.com",
+    "philadelphia.today",
+    "planetdetroit.org",
+    "poolside.ai",
+    "primedatacenters.com",
+    "q.com",
+    "qtsdatacenters.com",
+    "re-nj.com",
+    "richmondbizsense.com",
+    "rowan.digital",
+    "scdailygazette.com",
+    "signalcleveland.org",
+    "siouxfalls.business",
+    "spectrumnews1.com",
+    "spotlightdelaware.org",
+    "tammypurcell.substack.com",
+    "technical.ly",
+    "theenergymag.com",
+    "themainemonitor.org",
+    "tnecd.com",
+    "tucson.com",
+    "tulsaflyer.org",
+    "vantage-dc.com",
+    "virginiabusiness.com",
+    "wausaupilotandreview.com",
+    "wisconsinwatch.org",
+    "wtmj.com",
+    "wtop.com",
+    "wvmetronews.com",
+    "www.abc15.com",
+    "www.abc4.com",
+    "www.ajc.com",
+    "www.alleghenyfront.org",
+    "www.apple.com",
+    "www.aps.com",
+    "www.argoblockchain.com",
+    "www.arkansasbusiness.com",
+    "www.arkansasedc.com",
+    "www.army.mil",
+    "www.bangordailynews.com",
+    "www.bisnow.com",
+    "www.blackridgeresearch.com",
+    "www.boston.com",
+    "www.boxeldercountyut.gov",
+    "www.businesswire.com",
+    "www.centralmaine.com",
+    "www.cityofchesapeake.net",
+    "www.cnbc.com",
+    "www.connectcre.com",
+    "www.constellationenergy.com",
+    "www.constructionowners.com",
+    "www.crainsdetroit.com",
+    "www.crusoe.ai",
+    "www.daily-tribune.com",
+    "www.datacenterdynamics.com",
+    "www.datacenterfrontier.com",
+    "www.datacenterknowledge.com",
+    "www.datacentermap.com",
+    "www.datacenterwatch.org",
+    "www.dcblox.com",
+    "www.desmog.com",
+    "www.devx.com",
+    "www.digitalrealty.com",
+    "www.eia.gov",
+    "www.equinix.com",
+    "www.fallstwp.com",
+    "www.fauquiernow.com",
+    "www.fredericksburgfreepress.com",
+    "www.fxbgadvance.com",
+    "www.globenewswire.com",
+    "www.govtech.com",
+    "www.growthspotter.com",
+    "www.intersect.com",
+    "www.involta.com",
+    "www.ithaca.com",
+    "www.kctv5.com",
+    "www.kcur.org",
+    "www.komu.com",
+    "www.ksla.com",
+    "www.kwtx.com",
+    "www.latitudemedia.com",
+    "www.lkldnow.com",
+    "www.metrobloks.com",
+    "www.nao.usace.army.mil",
+    "www.naturalearthdata.com",
+    "www.nbc4i.com",
+    "www.nevadaappeal.com",
+    "www.news5cleveland.com",
+    "www.newson6.com",
+    "www.northcarolinahealthnews.org",
+    "www.novva.com",
+    "www.nrc.gov",
+    "www.nscale.com",
+    "www.oceanstatemedia.org",
+    "www.okcommerce.gov",
+    "www.okenergytoday.com",
+    "www.opportunitylouisiana.gov",
+    "www.powerhousedata.com",
+    "www.prnewswire.com",
+    "www.reuters.com",
+    "www.rockymounttelegram.com",
+    "www.roi-nj.com",
+    "www.sec.gov",
+    "www.spotsylvania.va.us",
+    "www.stackinfra.com",
+    "www.staffordcountyva.gov",
+    "www.startribune.com",
+    "www.stocktitan.net",
+    "www.sungazette.com",
+    "www.switch.com",
+    "www.texastribune.org",
+    "www.tierpoint.com",
+    "www.tract.com",
+    "www.usgs.gov",
+    "www.valleynewslive.com",
+    "www.vpm.org",
+    "www.wbrc.com",
+    "www.wenatcheeworld.com",
+    "www.wfdd.org",
+    "www.wkbn.com",
+    "www.wkbw.com",
+    "www.wkyufm.org",
+    "www.wowktv.com",
+    "www.wrdw.com",
+    "www.wtvr.com",
+    "www.wusf.org",
+    "www.wvia.org",
+    "www.yorkville.il.us",
+    "www7.co.union.oh.us"
+  ]);
 
   const statusStyles = Object.freeze({
     Operating: { color: "#005ea8", glow: "rgba(0, 94, 168, 0.28)", tag: "OP" },
@@ -85,22 +291,38 @@
     keepBuffer: 4
   });
 
-  const US_BOUNDS = L.latLngBounds(
-    [24.396308, -125.0],
-    [49.384358, -66.93457]
-  );
+  const RAW_US_BOUNDS = Object.freeze({
+    south: 18.0,
+    west: -170.0,
+    north: 72.0,
+    east: -65.0
+  });
+
+  const CONTROL_DRAWER_FOCUS_SELECTOR = [
+    "a[href]",
+    "button:not([disabled])",
+    "input:not([disabled])",
+    "select:not([disabled])",
+    "textarea:not([disabled])",
+    "[tabindex]"
+  ].join(",");
 
   // Cached references to the controls defined in the HTML.
   const searchInput = document.getElementById("siteSearch");
   const shownCount = document.getElementById("shownCount");
+  const resultCountText = document.getElementById("resultCountText");
   const showNuclear = document.getElementById("showNuclear");
   const showPower = document.getElementById("showPower");
   const showWater = document.getElementById("showWater");
   const showConnectors = document.getElementById("showConnectors");
   const showHeat = document.getElementById("showHeat");
+  const controlShell = document.getElementById("mapControlShell");
+  const controlDrawer = document.getElementById("mapControlDrawer");
+  const controlDrawerToggle = document.getElementById("controlDrawerToggle");
   const detailPanel = document.getElementById("detailPanel");
   const resultsList = document.getElementById("resultsList");
   const resultsMeta = document.getElementById("resultsMeta");
+  const featureHelpTooltip = createFeatureHelpTooltip();
   const summaryText = document.getElementById("summaryText");
   const dataCapacityMetric = document.getElementById("dataCapacityMetric");
   const nuclearCapacityMetric = document.getElementById("nuclearCapacityMetric");
@@ -125,14 +347,33 @@
   const powerTileCache = new Map();
   const reducedMotionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
   let dataCenterRenderKey = "";
+  let dataCenterConnectorKey = "";
   let powerRenderKey = "";
   let powerRequestKey = "";
   let powerRefreshFrame = 0;
+  let refreshFrame = 0;
+  let featureHelpFrame = 0;
+  let resultRenderToken = 0;
+
+  bindControlDrawer();
+
+  if (FORCE_SVG_FALLBACK || !window.L) {
+    const reason = FORCE_SVG_FALLBACK
+      ? "Local SVG map renderer is active."
+      : "Leaflet did not load, so the local SVG map renderer is active.";
+    startSvgMapFallback(reason);
+    return;
+  }
+
+  const US_BOUNDS = L.latLngBounds(
+    [RAW_US_BOUNDS.south, RAW_US_BOUNDS.west],
+    [RAW_US_BOUNDS.north, RAW_US_BOUNDS.east]
+  );
 
   const map = L.map("map", {
     maxBounds: US_BOUNDS,
     maxBoundsViscosity: 1.0,
-    minZoom: 4,
+    minZoom: 3,
     maxZoom: 10,
     zoomControl: false,
     preferCanvas: true,
@@ -148,9 +389,32 @@
   });
 
   map.fitBounds(US_BOUNDS, { padding: [20, 20] });
+  map.createPane("referencePane");
+  map.getPane("referencePane").style.zIndex = 250;
+  map.getPane("referencePane").style.pointerEvents = "none";
 
-  // Tile layers are external but version-stable; the CSP only allows vetted hosts.
+  const referenceRenderer = L.svg({
+    pane: "referencePane",
+    padding: 0.4
+  });
+  const referenceMapLayer = L.geoJSON(null, {
+    interactive: false,
+    renderer: referenceRenderer,
+    style: {
+      color: "#37536a",
+      fillColor: "#d5e2d4",
+      fillOpacity: 0.7,
+      opacity: 0.86,
+      weight: 1.2
+    }
+  });
+
+  // The local vector map is the default so the local server does not depend on tile CDNs.
+  const localBaseLayer = L.layerGroup([referenceMapLayer]);
+
+  // External tile layers are optional; the CSP only allows vetted hosts.
   const baseLayers = {
+    "Local map": localBaseLayer,
     Color: L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
       ...TILE_LAYER_OPTIONS,
       attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
@@ -170,7 +434,8 @@
   };
 
   const dcHubLayer = L.layerGroup();
-  const dcCluster = L.markerClusterGroup({
+  const canUseMarkerCluster = typeof L.markerClusterGroup === "function";
+  const dcCluster = canUseMarkerCluster ? L.markerClusterGroup({
     showCoverageOnHover: false,
     spiderfyOnMaxZoom: true,
     disableClusteringAtZoom: 8,
@@ -182,7 +447,7 @@
     chunkInterval: 120,
     chunkDelay: 35,
     iconCreateFunction: (cluster) => clusterIcon(cluster.getChildCount(), "sites")
-  });
+  }) : L.layerGroup();
 
   const nuclearLayer = L.layerGroup();
   const waterLayer = L.layerGroup();
@@ -192,7 +457,6 @@
   let powerCluster = null;
   let heatLayer = null;
   let heatPoints = null;
-  let refreshFrame = 0;
   let viewportRefreshTimer = 0;
   let heatRefreshTimer = 0;
   let powerRefreshTimer = 0;
@@ -204,7 +468,7 @@
   let lastTouchpadZoomAt = 0;
   let isZooming = false;
 
-  baseLayers.Light.addTo(map);
+  baseLayers["Local map"].addTo(map);
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.control.layers(baseLayers, null, { position: "bottomright", collapsed: true }).addTo(map);
 
@@ -212,7 +476,19 @@
 
   bindControls();
   showLoadingState();
+  loadReferenceMap();
   initializeMapData();
+
+  function loadReferenceMap() {
+    fetchJson(DATA_ENDPOINTS.referenceMap, MAX_REFERENCE_MAP_CHARS)
+      .then((geoJson) => {
+        referenceMapLayer.addData(geoJson);
+        map.attributionControl.addAttribution("Boundaries &copy; U.S. Census Bureau");
+      })
+      .catch(() => {
+        map.getContainer().classList.add("reference-map-unavailable");
+      });
+  }
 
   async function initializeMapData() {
     try {
@@ -247,6 +523,437 @@
     } catch (error) {
       showDataError(error);
     }
+  }
+
+  async function startSvgMapFallback(reason) {
+    const mapNode = document.getElementById("map");
+    if (!mapNode) return;
+
+    document.body.classList.add("svg-map-fallback-active");
+    mapNode.classList.add("svg-map-fallback");
+    mapNode.replaceChildren();
+    mapNode.setAttribute("aria-label", "U.S. data-center fallback map");
+
+    showLoadingState();
+    bindSvgFallbackControls();
+
+    try {
+      const [summary, referenceGeoJson, dataCenterGeoJson, nuclearGeoJson, waterGeoJson] = await Promise.all([
+        fetchJson(DATA_ENDPOINTS.summary, MAX_INITIAL_DATA_CHARS),
+        fetchJson(DATA_ENDPOINTS.referenceMap, MAX_REFERENCE_MAP_CHARS),
+        fetchJson(DATA_ENDPOINTS.dataCenters, MAX_INITIAL_DATA_CHARS),
+        fetchJson(DATA_ENDPOINTS.nuclearPlants, MAX_INITIAL_DATA_CHARS),
+        fetchJson(DATA_ENDPOINTS.waterSources, MAX_INITIAL_DATA_CHARS)
+      ]);
+
+      rawData = normalizeSummary(summary);
+      dataCenters = normalizeGeoJsonCollection(dataCenterGeoJson, normalizeDataCenter, MAX_DATA_CENTER_RECORDS);
+      nuclearPlants = normalizeGeoJsonCollection(nuclearGeoJson, normalizePowerPlant, MAX_WATER_RECORDS);
+      waterSources = normalizeGeoJsonCollection(waterGeoJson, normalizeWaterSource, MAX_WATER_RECORDS);
+
+      updateGeneratedMetrics(rawData);
+      showOverviewState(rawData);
+      renderSvgFallbackMap(referenceGeoJson, reason);
+      refreshSvgFallbackMap();
+      syncSvgFallbackLayerToggles();
+    } catch (error) {
+      showDataError(error);
+    }
+  }
+
+  function bindSvgFallbackControls() {
+    bindSearchEvents(scheduleSvgFallbackRefresh);
+    resultsList.addEventListener("click", handleSvgFallbackResultActivation);
+    resultsList.addEventListener("keydown", handleSvgFallbackResultActivation);
+
+    document.querySelectorAll("#statusFilters input").forEach((input) => {
+      input.addEventListener("change", () => {
+        syncStatusChipState();
+        scheduleSvgFallbackRefresh();
+      });
+    });
+
+    [showNuclear, showWater, showConnectors].forEach((input) => {
+      input.addEventListener("change", () => {
+        syncSvgFallbackLayerToggles();
+        scheduleSvgFallbackRefresh();
+      });
+    });
+
+    [showPower, showHeat].forEach((input) => {
+      const label = input.closest(".layer-toggle");
+      const disabledHelp = "This layer is available when the Leaflet map engine loads.";
+      input.disabled = true;
+      label.classList.add("disabled");
+      label.dataset.help = `${label.dataset.help || ""} ${disabledHelp}`.trim();
+      label.title = label.dataset.help;
+    });
+
+    bindFeatureHelpTooltips();
+  }
+
+  function bindSearchEvents(listener) {
+    ["input", "change", "keyup"].forEach((eventName) => {
+      searchInput.addEventListener(eventName, listener);
+    });
+  }
+
+  function createFeatureHelpTooltip() {
+    const tooltip = createElement("div", "feature-help-tooltip");
+    tooltip.id = "featureHelpTooltip";
+    tooltip.setAttribute("role", "tooltip");
+    tooltip.hidden = true;
+    document.body.append(tooltip);
+    return tooltip;
+  }
+
+  function bindFeatureHelpTooltips() {
+    document.querySelectorAll(".layer-toggle[data-help]").forEach((control) => {
+      if (control.dataset.helpBound === "true") return;
+      control.dataset.helpBound = "true";
+      control.dataset.nativeTitle = control.getAttribute("title") || "";
+      control.removeAttribute("title");
+      control.addEventListener("pointerenter", showFeatureHelpTooltip);
+      control.addEventListener("pointermove", positionFeatureHelpTooltip);
+      control.addEventListener("pointerleave", hideFeatureHelpTooltip);
+      control.addEventListener("focusin", showFeatureHelpTooltip);
+      control.addEventListener("focusout", hideFeatureHelpTooltip);
+      control.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") hideFeatureHelpTooltip(event);
+      });
+    });
+  }
+
+  function bindControlDrawer() {
+    if (!controlShell || !controlDrawer || !controlDrawerToggle) return;
+    if (controlDrawerToggle.dataset.drawerBound === "true") return;
+    controlDrawerToggle.dataset.drawerBound = "true";
+
+    controlDrawerToggle.addEventListener("click", () => {
+      setControlDrawerCollapsed(!controlShell.classList.contains("is-collapsed"));
+    });
+
+    document.querySelectorAll('.skip-link[href="#siteSearch"], .skip-link[href="#resultsPanel"]').forEach((link) => {
+      link.addEventListener("click", () => setControlDrawerCollapsed(false, { announceResize: false }));
+    });
+
+    setControlDrawerCollapsed(false, { announceResize: false });
+  }
+
+  function setControlDrawerCollapsed(collapsed, options = {}) {
+    if (!controlShell || !controlDrawer || !controlDrawerToggle) return;
+    const announceResize = options.announceResize !== false;
+    controlShell.classList.toggle("is-collapsed", collapsed);
+    controlDrawerToggle.setAttribute("aria-expanded", String(!collapsed));
+    controlDrawerToggle.setAttribute("aria-label", collapsed ? "Show map controls" : "Hide map controls");
+    controlDrawerToggle.title = collapsed ? "Show controls" : "Hide controls";
+    controlDrawer.setAttribute("aria-hidden", collapsed ? "true" : "false");
+    if (collapsed) {
+      controlDrawer.setAttribute("inert", "");
+    } else {
+      controlDrawer.removeAttribute("inert");
+    }
+    if ("inert" in controlDrawer) {
+      controlDrawer.inert = collapsed;
+    }
+    syncControlDrawerTabStops(collapsed);
+
+    if (collapsed) {
+      hideFeatureHelpTooltip();
+      if (controlDrawer.contains(document.activeElement)) {
+        controlDrawerToggle.focus({ preventScroll: true });
+      }
+    }
+
+    if (announceResize) {
+      const delay = prefersReducedMotion() ? 0 : CONTROL_DRAWER_RESIZE_DELAY_MS;
+      window.setTimeout(() => window.dispatchEvent(new Event("resize")), delay);
+    }
+  }
+
+  function syncControlDrawerTabStops(collapsed) {
+    controlDrawer.querySelectorAll(CONTROL_DRAWER_FOCUS_SELECTOR).forEach((element) => {
+      if (collapsed) {
+        if (!Object.prototype.hasOwnProperty.call(element.dataset, "drawerTabindex")) {
+          element.dataset.drawerTabindex = element.getAttribute("tabindex") || "";
+        }
+        element.setAttribute("tabindex", "-1");
+      } else if (Object.prototype.hasOwnProperty.call(element.dataset, "drawerTabindex")) {
+        const priorTabindex = element.dataset.drawerTabindex;
+        if (priorTabindex) {
+          element.setAttribute("tabindex", priorTabindex);
+        } else {
+          element.removeAttribute("tabindex");
+        }
+        delete element.dataset.drawerTabindex;
+      }
+    });
+  }
+
+  function showFeatureHelpTooltip(event) {
+    const control = event.currentTarget;
+    const text = safeText(control.dataset.help, 260);
+    if (!text) return;
+    control.setAttribute("aria-describedby", featureHelpTooltip.id);
+    featureHelpTooltip.textContent = text;
+    featureHelpTooltip.hidden = false;
+    featureHelpTooltip.classList.add("visible");
+    positionFeatureHelpTooltip(event);
+  }
+
+  function positionFeatureHelpTooltip(event) {
+    if (featureHelpTooltip.hidden) return;
+    const control = event.currentTarget;
+    const rect = control.getBoundingClientRect();
+    const pointerX = Number.isFinite(event.clientX) ? event.clientX : rect.right;
+    const pointerY = Number.isFinite(event.clientY) ? event.clientY : rect.top + rect.height / 2;
+
+    if (featureHelpFrame) cancelAnimationFrame(featureHelpFrame);
+    featureHelpFrame = requestAnimationFrame(() => {
+      featureHelpFrame = 0;
+      const tooltipRect = featureHelpTooltip.getBoundingClientRect();
+      const left = clamp(pointerX + 14, 8, window.innerWidth - tooltipRect.width - 8);
+      const top = clamp(pointerY + 14, 8, window.innerHeight - tooltipRect.height - 8);
+      featureHelpTooltip.style.transform = `translate3d(${left}px, ${top}px, 0)`;
+    });
+  }
+
+  function hideFeatureHelpTooltip(event) {
+    const control = event && event.currentTarget;
+    if (control && control.removeAttribute) {
+      control.removeAttribute("aria-describedby");
+    }
+    if (featureHelpFrame) {
+      cancelAnimationFrame(featureHelpFrame);
+      featureHelpFrame = 0;
+    }
+    featureHelpTooltip.classList.remove("visible");
+    featureHelpTooltip.hidden = true;
+  }
+
+  function renderSvgFallbackMap(referenceGeoJson, reason) {
+    const mapNode = document.getElementById("map");
+    const stage = createElement("div", "svg-map-stage");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const referenceGroup = document.createElementNS(svg.namespaceURI, "g");
+    const connectorGroup = document.createElementNS(svg.namespaceURI, "g");
+    const nuclearGroup = document.createElementNS(svg.namespaceURI, "g");
+    const waterGroup = document.createElementNS(svg.namespaceURI, "g");
+    const dataCenterGroup = document.createElementNS(svg.namespaceURI, "g");
+
+    svg.setAttribute("class", "svg-fallback-map");
+    svg.setAttribute("viewBox", `0 0 ${FALLBACK_MAP_WIDTH} ${FALLBACK_MAP_HEIGHT}`);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Fallback U.S. map showing data-center facility points");
+
+    referenceGroup.setAttribute("class", "fallback-reference-layer");
+    connectorGroup.setAttribute("class", "fallback-connector-layer");
+    nuclearGroup.setAttribute("class", "fallback-nuclear-layer");
+    waterGroup.setAttribute("class", "fallback-water-layer");
+    dataCenterGroup.setAttribute("class", "fallback-data-center-layer");
+    dataCenterGroup.id = "fallbackDataCenterPoints";
+    nuclearGroup.id = "fallbackNuclearPoints";
+    waterGroup.id = "fallbackWaterPoints";
+    connectorGroup.id = "fallbackConnectorLines";
+
+    drawFallbackReference(referenceGroup, referenceGeoJson);
+    dataCenterGroup.addEventListener("click", handleSvgFallbackPointActivation);
+    dataCenterGroup.addEventListener("keydown", handleSvgFallbackPointActivation);
+
+    svg.append(referenceGroup, connectorGroup, nuclearGroup, waterGroup, dataCenterGroup);
+    stage.append(svg);
+    if (reason) {
+      const notice = createElement("div", "svg-map-notice", reason);
+      stage.append(notice);
+    }
+    mapNode.replaceChildren(stage);
+  }
+
+  function drawFallbackReference(group, geoJson) {
+    const features = Array.isArray(geoJson && geoJson.features) ? geoJson.features : [];
+    const fragment = document.createDocumentFragment();
+    features.forEach((feature) => {
+      const pathData = fallbackGeometryPath(feature.geometry);
+      if (!pathData) return;
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("class", "fallback-state");
+      path.setAttribute("d", pathData);
+      fragment.append(path);
+    });
+    group.replaceChildren(fragment);
+  }
+
+  function scheduleSvgFallbackRefresh() {
+    if (refreshFrame) cancelAnimationFrame(refreshFrame);
+    refreshFrame = requestAnimationFrame(() => {
+      refreshFrame = 0;
+      refreshSvgFallbackMap();
+    });
+  }
+
+  function refreshSvgFallbackMap() {
+    const statuses = activeStatuses();
+    const query = searchInput.value.trim().toLowerCase();
+    const filtered = filteredDataCenters(statuses, query);
+
+    shownCount.textContent = filtered.length.toLocaleString();
+    renderResultsList(filtered);
+    drawFallbackDataCenters(filtered);
+    drawFallbackContextPoints();
+    drawFallbackConnectors(filtered);
+  }
+
+  function drawFallbackDataCenters(sites) {
+    const group = document.getElementById("fallbackDataCenterPoints");
+    if (!group) return;
+    const fragment = document.createDocumentFragment();
+    sites.slice(0, FALLBACK_MARKER_LIMIT).forEach((site) => {
+      const [x, y] = fallbackProject(site.latitude, site.longitude);
+      const style = statusStyles[site.status_group] || statusStyles.Other;
+      const marker = document.createElementNS(group.namespaceURI, "circle");
+      marker.setAttribute("class", "fallback-site-point");
+      marker.setAttribute("cx", svgNumber(x));
+      marker.setAttribute("cy", svgNumber(y));
+      marker.setAttribute("r", svgNumber(fallbackMarkerRadius(site), 1));
+      marker.setAttribute("fill", style.color);
+      marker.setAttribute("tabindex", "0");
+      marker.setAttribute("role", "button");
+      marker.setAttribute("aria-label", dataCenterAccessibleLabel(site));
+      marker.dataset.siteKey = site.key;
+      fragment.append(marker);
+    });
+    group.replaceChildren(fragment);
+  }
+
+  function drawFallbackContextPoints() {
+    drawFallbackPointSet("fallbackNuclearPoints", nuclearPlants, "#047857", showNuclear.checked, "fallback-nuclear-point");
+    drawFallbackPointSet("fallbackWaterPoints", waterSources, "#0369a1", showWater.checked, "fallback-water-point");
+  }
+
+  function drawFallbackPointSet(groupId, records, color, shouldShow, className) {
+    const group = document.getElementById(groupId);
+    if (!group) return;
+    if (!shouldShow) {
+      group.replaceChildren();
+      return;
+    }
+    const fragment = document.createDocumentFragment();
+    records.forEach((record) => {
+      const [x, y] = fallbackProject(record.latitude, record.longitude);
+      const marker = document.createElementNS(group.namespaceURI, "circle");
+      marker.setAttribute("class", className);
+      marker.setAttribute("cx", svgNumber(x));
+      marker.setAttribute("cy", svgNumber(y));
+      marker.setAttribute("r", "4.5");
+      marker.setAttribute("fill", color);
+      fragment.append(marker);
+    });
+    group.replaceChildren(fragment);
+  }
+
+  function drawFallbackConnectors(sites) {
+    const group = document.getElementById("fallbackConnectorLines");
+    if (!group) return;
+    if (!showConnectors.checked) {
+      group.replaceChildren();
+      return;
+    }
+    const fragment = document.createDocumentFragment();
+    sites.slice(0, 260).forEach((site) => {
+      ["nuclear", "power", "water"].forEach((kind) => {
+        const latitude = site[`nearest_${kind}_latitude`];
+        const longitude = site[`nearest_${kind}_longitude`];
+        if (latitude === null || longitude === null) return;
+        const [x1, y1] = fallbackProject(site.latitude, site.longitude);
+        const [x2, y2] = fallbackProject(latitude, longitude);
+        const line = document.createElementNS(group.namespaceURI, "line");
+        line.setAttribute("class", `fallback-line fallback-line-${kind}`);
+        line.setAttribute("x1", svgNumber(x1));
+        line.setAttribute("y1", svgNumber(y1));
+        line.setAttribute("x2", svgNumber(x2));
+        line.setAttribute("y2", svgNumber(y2));
+        fragment.append(line);
+      });
+    });
+    group.replaceChildren(fragment);
+  }
+
+  function handleSvgFallbackResultActivation(event) {
+    if (event.type === "keydown" && !["Enter", " "].includes(event.key)) return;
+    const button = event.target.closest(".result-button");
+    if (!button || !resultsList.contains(button)) return;
+    const site = dataCenters.find((item) => item.key === button.dataset.siteKey);
+    if (!site) return;
+    event.preventDefault();
+    selectSvgFallbackDataCenter(site);
+  }
+
+  function handleSvgFallbackPointActivation(event) {
+    if (event.type === "keydown" && !["Enter", " "].includes(event.key)) return;
+    const marker = event.target.closest("[data-site-key]");
+    if (!marker) return;
+    const site = dataCenters.find((item) => item.key === marker.dataset.siteKey);
+    if (!site) return;
+    event.preventDefault();
+    selectSvgFallbackDataCenter(site);
+  }
+
+  function selectSvgFallbackDataCenter(site) {
+    updateDetail(site, "data-center");
+    document.querySelectorAll(".fallback-site-point.selected").forEach((marker) => {
+      marker.classList.remove("selected");
+    });
+    const marker = Array.from(document.querySelectorAll(".fallback-site-point"))
+      .find((element) => element.dataset.siteKey === site.key);
+    if (marker) marker.classList.add("selected");
+    detailPanel.focus({ preventScroll: true });
+  }
+
+  function syncSvgFallbackLayerToggles() {
+    [showNuclear, showPower, showWater, showConnectors, showHeat].forEach((input) => {
+      input.closest(".layer-toggle").classList.toggle("active", input.checked && !input.disabled);
+    });
+  }
+
+  function fallbackGeometryPath(geometry) {
+    if (!geometry || !geometry.type) return "";
+    if (geometry.type === "Polygon") {
+      return geometry.coordinates.map(fallbackRingPath).join(" ");
+    }
+    if (geometry.type === "MultiPolygon") {
+      return geometry.coordinates
+        .flatMap((polygon) => polygon.map(fallbackRingPath))
+        .join(" ");
+    }
+    return "";
+  }
+
+  function fallbackRingPath(ring) {
+    if (!Array.isArray(ring) || !ring.length) return "";
+    return ring.map((coordinate, index) => {
+      const [x, y] = fallbackProject(coordinate[1], coordinate[0]);
+      return `${index === 0 ? "M" : "L"}${svgNumber(x)} ${svgNumber(y)}`;
+    }).join(" ") + " Z";
+  }
+
+  function fallbackProject(latitude, longitude) {
+    const x = ((longitude - RAW_US_BOUNDS.west) / (RAW_US_BOUNDS.east - RAW_US_BOUNDS.west)) * FALLBACK_MAP_WIDTH;
+    const y = ((RAW_US_BOUNDS.north - latitude) / (RAW_US_BOUNDS.north - RAW_US_BOUNDS.south)) * FALLBACK_MAP_HEIGHT;
+    return [x, y];
+  }
+
+  function fallbackMarkerRadius(site) {
+    const capacity = Number(site.capacity_mw);
+    if (Number.isFinite(capacity) && capacity > 0) {
+      return clamp(3.8 + Math.sqrt(capacity) * 0.04, 4.2, 9);
+    }
+    return 4.5;
+  }
+
+  function svgNumber(value, digits = 2) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return "0";
+    return number.toFixed(digits);
   }
 
   function handleZoomStart() {
@@ -330,7 +1037,7 @@
 
   function bindControls() {
     bindTouchpadZoom();
-    searchInput.addEventListener("input", scheduleDataCenterRefresh);
+    bindSearchEvents(scheduleDataCenterRefresh);
     resultsList.addEventListener("click", handleResultActivation);
     resultsList.addEventListener("keydown", handleResultActivation);
 
@@ -349,6 +1056,8 @@
         syncLayerToggles();
       });
     });
+
+    bindFeatureHelpTooltips();
   }
 
   function bindTouchpadZoom() {
@@ -414,9 +1123,10 @@
     if (url.origin !== window.location.origin) {
       throw new Error("Map data must be loaded from this site.");
     }
+    url.searchParams.set("v", APP_VERSION);
 
     const response = await fetch(url.href, {
-      cache: "force-cache",
+      cache: "no-cache",
       credentials: "same-origin",
       referrerPolicy: "strict-origin-when-cross-origin"
     });
@@ -531,7 +1241,7 @@
       createElement("h2", "", "Loading"),
       createElement("span", "pill", "Data")
     );
-    shownCount.textContent = "0";
+    shownCount.textContent = "...";
     renderResultMessage("Loading data-center results.", "Loading");
     detailPanel.replaceChildren(
       title,
@@ -572,11 +1282,21 @@
     );
     detailPanel.replaceChildren(
       title,
-      createElement("div", "detail-body", "Map data could not be loaded. Start the Python map server and refresh the page.")
+      createElement("div", "detail-body", dataErrorMessage(error))
     );
-    shownCount.textContent = "0";
+    if (resultCountText) {
+      resultCountText.textContent = "Data error";
+    }
     renderResultMessage("Results unavailable.", "Error");
     console.error(error);
+  }
+
+  function dataErrorMessage(error) {
+    if (window.location.protocol === "file:") {
+      return "Map data cannot be loaded from a direct file open. Start the Python map server and open its local URL.";
+    }
+    const message = error && error.message ? ` ${safeText(error.message, 160)}` : "";
+    return `Map data could not be loaded. Refresh the page, then confirm the data folder is deployed with the map.${message}`;
   }
 
   function renderResultMessage(message, metaText) {
@@ -588,6 +1308,7 @@
 
   function renderResultsList(sites) {
     if (!resultsList) return;
+    const token = ++resultRenderToken;
 
     if (!sites.length) {
       shownCount.textContent = "0";
@@ -595,15 +1316,26 @@
       return;
     }
 
-    const fragment = document.createDocumentFragment();
-    sites.forEach((site) => {
-      const item = document.createElement("li");
-      item.append(dataCenterResultButton(site));
-      fragment.append(item);
-    });
-
-    resultsList.replaceChildren(fragment);
+    resultsList.replaceChildren();
     if (resultsMeta) resultsMeta.textContent = `${numberFormat(sites.length)} shown`;
+
+    let index = 0;
+    const appendChunk = () => {
+      if (token !== resultRenderToken) return;
+      const fragment = document.createDocumentFragment();
+      const end = Math.min(index + RESULT_RENDER_CHUNK_SIZE, sites.length);
+      for (; index < end; index += 1) {
+        const item = document.createElement("li");
+        item.append(dataCenterResultButton(sites[index]));
+        fragment.append(item);
+      }
+      resultsList.append(fragment);
+      if (index < sites.length) {
+        requestAnimationFrame(appendChunk);
+      }
+    };
+
+    appendChunk();
   }
 
   function dataCenterResultButton(site) {
@@ -1054,10 +1786,13 @@
   }
 
   function safeExternalLink(url, label) {
+    const fallback = document.createTextNode(safeText(label || "Source", 120));
+
     try {
       const parsed = new URL(url, window.location.href);
-      if (!["http:", "https:"].includes(parsed.protocol)) {
-        return document.createTextNode("");
+      const host = parsed.hostname.toLowerCase();
+      if (parsed.protocol !== "https:" || !APPROVED_SOURCE_HOSTS.has(host)) {
+        return fallback;
       }
 
       const anchor = document.createElement("a");
@@ -1067,7 +1802,7 @@
       anchor.textContent = safeText(label || "Source", 120);
       return anchor;
     } catch {
-      return document.createTextNode("");
+      return fallback;
     }
   }
 
@@ -1423,6 +2158,7 @@
 
   function getHeatLayer() {
     if (heatLayer) return heatLayer;
+    if (typeof L.heatLayer !== "function") return null;
 
     heatLayer = L.heatLayer(buildHeatPoints(), heatOptionsForZoom());
 
@@ -1488,8 +2224,15 @@
       Array.from(statuses).sort().join(","),
       query,
       dataBubbleLayers.hubs ? "hubs" : "no-hubs",
-      dataBubbleLayers.markers ? "markers" : "no-markers",
-      visibility.connectors && dataBubbleLayers.markers ? "connectors" : "no-connectors"
+      dataBubbleLayers.markers ? "markers" : "no-markers"
+    ].join("|");
+  }
+
+  function connectorLayerKey(statuses, query, visibility, dataBubbleLayers) {
+    if (!visibility.connectors || !dataBubbleLayers.markers) return "";
+    return [
+      Array.from(statuses).sort().join(","),
+      query
     ].join("|");
   }
 
@@ -1587,42 +2330,48 @@
     const dataBubbleLayers = effectiveDataBubbleLayers(visibility);
     const filtered = filteredDataCenters(statuses, query);
     const renderKey = dataCenterLayerKey(statuses, query, visibility);
+    const connectorsKey = connectorLayerKey(statuses, query, visibility, dataBubbleLayers);
 
     shownCount.textContent = filtered.length.toLocaleString();
     if (shouldRenderResults) renderResultsList(filtered);
-    if (renderKey === dataCenterRenderKey) return;
-    dataCenterRenderKey = renderKey;
 
-    if (dataBubbleLayers.hubs) {
-      dcHubLayer.clearLayers();
-      const hubs = hubsForSites(filtered);
-      const hubMarkers = hubs.map((hub) => getHubMarker(hub));
-      hubMarkers.forEach((marker) => dcHubLayer.addLayer(marker));
-    }
+    if (renderKey !== dataCenterRenderKey) {
+      dataCenterRenderKey = renderKey;
 
-    if (dataBubbleLayers.markers) {
-      dcCluster.clearLayers();
-      const markers = filtered.map((site) => getDataCenterMarker(site));
-      dcCluster.addLayers(markers);
+      if (dataBubbleLayers.hubs) {
+        dcHubLayer.clearLayers();
+        const hubs = hubsForSites(filtered);
+        const hubMarkers = hubs.map((hub) => getHubMarker(hub));
+        hubMarkers.forEach((marker) => dcHubLayer.addLayer(marker));
+      }
 
-      if (visibility.connectors) {
-        connectorLayer.clearLayers();
-        filtered.forEach((site) => {
-          addProximityLine(site, "nuclear");
-          addProximityLine(site, "power");
-          addProximityLine(site, "water");
-        });
+      if (dataBubbleLayers.markers) {
+        dcCluster.clearLayers();
+        const markers = filtered.map((site) => getDataCenterMarker(site));
+        addMarkerBatch(dcCluster, markers);
+      }
+
+      if (!dataBubbleLayers.hubs) {
+        dcHubLayer.clearLayers();
+      }
+      if (!dataBubbleLayers.markers) {
+        dcCluster.clearLayers();
       }
     }
 
-    if (!visibility.connectors || !dataBubbleLayers.markers) {
+    if (connectorsKey && connectorsKey !== dataCenterConnectorKey) {
+      dataCenterConnectorKey = connectorsKey;
       connectorLayer.clearLayers();
+      filtered.forEach((site) => {
+        addProximityLine(site, "nuclear");
+        addProximityLine(site, "power");
+        addProximityLine(site, "water");
+      });
     }
-    if (!dataBubbleLayers.hubs) {
-      dcHubLayer.clearLayers();
-    }
-    if (!dataBubbleLayers.markers) {
-      dcCluster.clearLayers();
+
+    if (!connectorsKey) {
+      dataCenterConnectorKey = "";
+      connectorLayer.clearLayers();
     }
   }
 
@@ -1644,6 +2393,14 @@
     });
     hubMarkerCache.set(hub.key, marker);
     return marker;
+  }
+
+  function addMarkerBatch(layer, markers) {
+    if (typeof layer.addLayers === "function") {
+      layer.addLayers(markers);
+      return;
+    }
+    markers.forEach((marker) => layer.addLayer(marker));
   }
 
   function getDataCenterMarker(site) {
@@ -1759,7 +2516,7 @@
 
   function ensurePowerCluster() {
     if (powerCluster) return powerCluster;
-    powerCluster = L.markerClusterGroup({
+    powerCluster = canUseMarkerCluster ? L.markerClusterGroup({
       showCoverageOnHover: false,
       spiderfyOnMaxZoom: false,
       removeOutsideVisibleBounds: false,
@@ -1770,7 +2527,7 @@
       chunkInterval: 100,
       chunkDelay: 45,
       iconCreateFunction: (cluster) => clusterIcon(cluster.getChildCount(), "power")
-    });
+    }) : L.layerGroup();
 
     return powerCluster;
   }
@@ -1835,7 +2592,7 @@
 
     powerRenderKey = renderKey;
     cluster.clearLayers();
-    cluster.addLayers(visiblePlants.map((plant) => getPowerMarker(plant)));
+    addMarkerBatch(cluster, visiblePlants.map((plant) => getPowerMarker(plant)));
   }
 
   function syncLayerToggles() {
@@ -1857,8 +2614,10 @@
 
     if (visibility.heat) {
       const layer = getHeatLayer();
-      updateHeatLayerForZoom();
-      toggleMapLayer(layer, true);
+      if (layer) {
+        updateHeatLayerForZoom();
+        toggleMapLayer(layer, true);
+      }
     } else if (heatLayer) {
       toggleMapLayer(heatLayer, false);
     }

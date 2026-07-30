@@ -4,16 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>U.S. Data Centers, Power, Nuclear, and Water Landscape</title>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'none'; script-src 'self' https://unpkg.com; script-src-attr 'none'; style-src 'self' https://unpkg.com 'unsafe-inline'; img-src 'self' data: https://unpkg.com https://*.basemaps.cartocdn.com https://server.arcgisonline.com https://*.arcgisonline.com; font-src 'self' data:; connect-src 'self'; worker-src 'none'; manifest-src 'self'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()">
-  <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
   <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="anonymous">
-  <link rel="stylesheet" href="styles.css?v=ada-accessibility-20260722">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4">
+  <link rel="stylesheet" href="vendor/leaflet.markercluster/MarkerCluster.css?v=1.5.3">
+  <link rel="stylesheet" href="vendor/leaflet.markercluster/MarkerCluster.Default.css?v=1.5.3">
+  <link rel="stylesheet" href="styles.css?v=map-drawer-20260730">
 </head>
 <body>
   <a class="skip-link" href="#siteSearch">Skip to controls</a>
@@ -29,20 +26,23 @@
   <div id="map" role="region" aria-label="U.S. data-center, power, nuclear, and water landscape map" aria-describedby="mapAccessibilityText" tabindex="0"></div>
 
   <!-- User controls: overview metrics, filters, layer switches, and selected-marker details. -->
-  <aside class="ui-shell" aria-label="Map controls">
+  <aside class="ui-shell" id="mapControlShell" aria-label="Map controls">
+    <button class="control-drawer-toggle" id="controlDrawerToggle" type="button" aria-controls="mapControlDrawer" aria-expanded="true" aria-label="Hide map controls" title="Hide controls"></button>
+
+    <div class="control-drawer" id="mapControlDrawer">
     <!-- Generated summary counts and capacity totals. -->
     <section class="panel intro-panel">
       <div class="intro-band">
-        <div class="eyebrow">INCOMPAS infrastructure landscape</div>
+        <div class="eyebrow">Infrastructure landscape</div>
         <h1>Data Centers, Power, and Water</h1>
         <p class="summary" id="summaryText">
-          422 public data-center facility records, 63 nuclear operating or pipeline
-          records, 15,975 power-plant records, and 41 named water-source references.
+          684 public data-center facility records, 63 nuclear operating or pipeline
+          records, 16,110 power-plant records, and 41 named water-source references.
         </p>
       </div>
       <div class="metric-grid">
         <div class="metric">
-          <strong id="dataCapacityMetric">171.4 GW</strong>
+          <strong id="dataCapacityMetric">177.9 GW</strong>
           <span>reported data-center capacity</span>
         </div>
         <div class="metric">
@@ -50,7 +50,7 @@
           <span>nuclear operating and pipeline MW</span>
         </div>
         <div class="metric">
-          <strong id="powerCountMetric">15,975</strong>
+          <strong id="powerCountMetric">16,110</strong>
           <span>power plants available as a layer</span>
         </div>
       </div>
@@ -64,7 +64,7 @@
           <input id="siteSearch" type="search" placeholder="Name, company, state, power, water" autocomplete="off" aria-describedby="searchHelp resultCountText" aria-controls="resultsList">
           <span class="sr-only" id="searchHelp">Filters the data-center results and markers as you type.</span>
         </div>
-        <div class="mini-count" id="resultCountText" aria-live="polite"><span id="shownCount">0</span> shown</div>
+        <div class="mini-count" id="resultCountText" aria-live="polite"><span id="shownCount">684</span> shown</div>
       </div>
 
       <fieldset class="chip-grid" id="statusFilters" aria-controls="resultsList">
@@ -98,23 +98,23 @@
 
       <fieldset class="layer-row">
         <legend>Map layers</legend>
-        <label class="layer-toggle active">
+        <label class="layer-toggle active" data-help="Shows nuclear operating, pipeline, restart, and SMR-related records once you zoom in." title="Shows nuclear operating, pipeline, restart, and SMR-related records once you zoom in.">
           <input id="showNuclear" type="checkbox" checked>
           Nuclear
         </label>
-        <label class="layer-toggle">
+        <label class="layer-toggle" data-help="Loads power-plant records only for the visible map area, keeping the large power dataset responsive." title="Loads power-plant records only for the visible map area, keeping the large power dataset responsive.">
           <input id="showPower" type="checkbox">
           Power
         </label>
-        <label class="layer-toggle active">
+        <label class="layer-toggle active" data-help="Shows named water-source reference points used for local water proximity context." title="Shows named water-source reference points used for local water proximity context.">
           <input id="showWater" type="checkbox" checked>
           Water
         </label>
-        <label class="layer-toggle active">
+        <label class="layer-toggle active" data-help="Draws each data center's nearest nuclear, power, and water links after you zoom in." title="Draws each data center's nearest nuclear, power, and water links after you zoom in.">
           <input id="showConnectors" type="checkbox" checked>
           Proximity
         </label>
-        <label class="layer-toggle" id="heatToggleLabel">
+        <label class="layer-toggle" id="heatToggleLabel" data-help="Shows cached density heat for data centers and nuclear capacity at broad zoom levels." title="Shows cached density heat for data centers and nuclear capacity at broad zoom levels.">
           <input id="showHeat" type="checkbox">
           Heat
         </label>
@@ -153,17 +153,18 @@
         nuclear site, power plant, and named water-source reference.
       </div>
       <dl class="detail-list">
-        <dt>Data centers</dt><dd id="dataCountDetail">422 public facility records</dd>
-        <dt>Power plants</dt><dd id="powerCountDetail">15,975 operating and planned records</dd>
+        <dt>Data centers</dt><dd id="dataCountDetail">684 public facility records</dd>
+        <dt>Power plants</dt><dd id="powerCountDetail">16,110 operating and planned records</dd>
         <dt>Water</dt><dd id="waterCountDetail">41 named reference points</dd>
       </dl>
     </section>
+    </div>
   </aside>
 
-  <!-- External map libraries and map behavior are loaded with defer for faster parsing. -->
-  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
-  <script defer src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin="anonymous"></script>
-  <script defer src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js" crossorigin="anonymous"></script>
-  <script defer src="app.js?v=ada-accessibility-20260722"></script>
+  <!-- Self-hosted map libraries and map behavior are loaded with defer for faster parsing. -->
+  <script defer src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
+  <script defer src="vendor/leaflet.markercluster/leaflet.markercluster.js?v=1.5.3"></script>
+  <script defer src="vendor/leaflet.heat/leaflet-heat.js?v=0.2.0"></script>
+  <script defer src="app.js?v=map-drawer-20260730"></script>
 </body>
 </html>

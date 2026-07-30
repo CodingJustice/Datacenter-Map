@@ -13,3 +13,9 @@ __pycache__/
 .pytest_cache/
 uploads/
 private/
+cache/
+security-reports/
+compute-atlas-data-centers.json
+compute-atlas-facilities.json
+water_sources.csv
+us_ai_datacenters_nuclear_map_*.csv
