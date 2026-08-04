@@ -1,0 +1,83 @@
+{
+  "generatedAt": "2026-07-28",
+  "purpose": "Pinned, self-hosted browser dependencies for the static map.",
+  "assets": [
+    {
+      "name": "Leaflet CSS",
+      "version": "1.9.4",
+      "path": "vendor/leaflet/leaflet.css",
+      "source": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+      "integrity": "sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H"
+    },
+    {
+      "name": "Leaflet JavaScript",
+      "version": "1.9.4",
+      "path": "vendor/leaflet/leaflet.js",
+      "source": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+      "integrity": "sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH"
+    },
+    {
+      "name": "Leaflet layer control image",
+      "version": "1.9.4",
+      "path": "vendor/leaflet/images/layers.png",
+      "source": "https://unpkg.com/leaflet@1.9.4/dist/images/layers.png",
+      "integrity": "sha384-80x85ZS+G189o0xL8E8D7BnfhuNss6EwUPHzG7e+qByRD2xnpxikZ6UQU4Re5nNy"
+    },
+    {
+      "name": "Leaflet retina layer control image",
+      "version": "1.9.4",
+      "path": "vendor/leaflet/images/layers-2x.png",
+      "source": "https://unpkg.com/leaflet@1.9.4/dist/images/layers-2x.png",
+      "integrity": "sha384-+F2ZWK/HTpkV9kN2HnMGCQOTM/cnQJLs770FLOeHznwVWRfDESI8z4JwcGYmy2Au"
+    },
+    {
+      "name": "Leaflet marker icon",
+      "version": "1.9.4",
+      "path": "vendor/leaflet/images/marker-icon.png",
+      "source": "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+      "integrity": "sha384-wg83fCOXjBtqzFAWhTL9Sd9vmLUNhfEEzfmNUX9zwv2igKlz/YQbdapF4ObdxF+R"
+    },
+    {
+      "name": "Leaflet retina marker icon",
+      "version": "1.9.4",
+      "path": "vendor/leaflet/images/marker-icon-2x.png",
+      "source": "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      "integrity": "sha384-bDEa1RhAAKIr/VQnMZ7gUhhXwmKYB4V0g8AsxOvCEPwGxfHCUEzAEMAEEzkjuxiA"
+    },
+    {
+      "name": "Leaflet marker shadow",
+      "version": "1.9.4",
+      "path": "vendor/leaflet/images/marker-shadow.png",
+      "source": "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      "integrity": "sha384-dB8ivfvPGb1MSIzX8oWTakCxmq+VwqP/QL1TX4jT4INR3pM5T4FgF3Gx4mN3NTMq"
+    },
+    {
+      "name": "Leaflet.markercluster CSS",
+      "version": "1.5.3",
+      "path": "vendor/leaflet.markercluster/MarkerCluster.css",
+      "source": "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css",
+      "integrity": "sha384-pmjIAcz2bAn0xukfxADbZIb3t8oRT9Sv0rvO+BR5Csr6Dhqq+nZs59P0pPKQJkEV"
+    },
+    {
+      "name": "Leaflet.markercluster default CSS",
+      "version": "1.5.3",
+      "path": "vendor/leaflet.markercluster/MarkerCluster.Default.css",
+      "source": "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css",
+      "integrity": "sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+"
+    },
+    {
+      "name": "Leaflet.markercluster JavaScript",
+      "version": "1.5.3",
+      "path": "vendor/leaflet.markercluster/leaflet.markercluster.js",
+      "source": "https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js",
+      "integrity": "sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr"
+    },
+    {
+      "name": "Leaflet.heat JavaScript",
+      "version": "0.2.0",
+      "path": "vendor/leaflet.heat/leaflet-heat.js",
+      "source": "https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js",
+      "integrity": "sha384-mFKkGiGvT5vo1fEyGCD3hshDdKmW3wzXW/x+fWriYJArD0R3gawT6lMvLboM22c0"
+    }
+  ]
+}

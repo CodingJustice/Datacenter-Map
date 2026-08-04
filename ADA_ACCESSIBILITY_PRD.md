@@ -49,7 +49,7 @@ access to the same core information.
 - This release does not certify legal ADA compliance by itself.
 - This release does not redesign the data pipeline, source collection process,
   or public data methodology.
-- This release does not expose all 15,975 power-plant records in a full data
+- This release does not expose all 16,110 power-plant records in a full data
   grid. The power layer remains a visual, optional layer until a performant
   accessible table/export path is prioritized.
 

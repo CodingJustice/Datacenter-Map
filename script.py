@@ -4,15 +4,15 @@ Build the data files used by the U.S. data-center, power, nuclear, and water map
 The current workflow is data-first:
 1. Read public data-center facility records from Compute Atlas JSON/API.
 2. Read operating and planned power generators from the EIA-860M workbook.
-3. Read named water-source reference points from water_sources.csv.
+3. Read named water-source reference points from private/inputs/water_sources.csv.
 4. Remove market-hub placeholders, compute nearest nuclear/power/water context,
    then write CSV exports plus JSON/GeoJSON files for the browser map.
 
 How to use:
     python script.py
     python script.py --refresh-compute-atlas
-    python script.py --compute-atlas-json compute-atlas-data-centers.json
-    python script.py --water-sources water_sources.csv
+    python script.py --compute-atlas-json private/inputs/compute-atlas-data-centers.json
+    python script.py --water-sources private/inputs/water_sources.csv
     python script.py --output-dir data
 
 This script uses only the Python standard library.
@@ -37,7 +37,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlparse
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 from zipfile import ZipFile
 
 
@@ -292,11 +292,23 @@ def validate_existing_file(path: Path, allowed_suffixes: set[str], max_bytes: in
     return resolved
 
 
-def validate_upstream_url(url: str) -> None:
+def validate_upstream_url(url: str, label: str = "data-source URL") -> str:
     parsed = urlparse(url)
     host = (parsed.hostname or "").lower()
     if parsed.scheme != "https" or host not in ALLOWED_UPSTREAM_HOSTS:
-        raise ValueError("Only approved HTTPS data-source URLs are allowed.")
+        raise ValueError(f"Only approved HTTPS {label}s are allowed.")
+    return url
+
+
+class ValidatingRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        redirect = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if redirect is not None:
+            validate_upstream_url(redirect.full_url, "redirect URL")
+        return redirect
+
+
+URL_OPENER = build_opener(ValidatingRedirectHandler)
 
 
 def validate_zip_members(workbook: ZipFile) -> None:
@@ -340,7 +352,7 @@ def fetch_url(
     binary: bool = False,
     max_bytes: int = MAX_API_RESPONSE_BYTES,
 ) -> str | bytes:
-    validate_upstream_url(url)
+    validate_upstream_url(url, "upstream URL")
     request = Request(
         url,
         headers={
@@ -351,7 +363,8 @@ def fetch_url(
         },
     )
     try:
-        with urlopen(request, timeout=timeout) as response:
+        with URL_OPENER.open(request, timeout=timeout) as response:
+            validate_upstream_url(response.geturl(), "final response URL")
             content_length = response.headers.get("Content-Length")
             if content_length:
                 try:
@@ -1518,13 +1531,13 @@ def write_map_data_files(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build data-center map data files.")
-    parser.add_argument("--compute-atlas-json", type=Path, default=Path("compute-atlas-data-centers.json"))
-    parser.add_argument("--compute-atlas-all-json", type=Path, default=Path("compute-atlas-facilities.json"))
+    parser.add_argument("--compute-atlas-json", type=Path, default=Path("private/inputs/compute-atlas-data-centers.json"))
+    parser.add_argument("--compute-atlas-all-json", type=Path, default=Path("private/inputs/compute-atlas-facilities.json"))
     parser.add_argument("--refresh-compute-atlas", action="store_true")
-    parser.add_argument("--cache-dir", type=Path, default=Path("cache"))
+    parser.add_argument("--cache-dir", type=Path, default=Path("private/cache"))
     parser.add_argument("--refresh-eia", action="store_true")
-    parser.add_argument("--water-sources", type=Path, default=Path("water_sources.csv"))
-    parser.add_argument("--output-prefix", default="us_ai_datacenters_nuclear_map")
+    parser.add_argument("--water-sources", type=Path, default=Path("private/inputs/water_sources.csv"))
+    parser.add_argument("--output-prefix", default="private/exports/us_ai_datacenters_nuclear_map")
     parser.add_argument("--output-dir", type=Path, default=Path("data"))
     parser.add_argument("--output-db", type=Path, default=Path("private/map-data.sqlite"))
     parser.add_argument("--skip-sqlite", action="store_true")

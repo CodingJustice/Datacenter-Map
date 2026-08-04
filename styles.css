@@ -67,6 +67,96 @@
       opacity: 0.86;
     }
 
+    #map.svg-map-fallback {
+      position: relative;
+      overflow: hidden;
+      background: #dce8e7;
+    }
+
+    .svg-map-stage {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .svg-fallback-map {
+      display: block;
+      inline-size: 100%;
+      block-size: 100%;
+    }
+
+    .fallback-state {
+      fill: #d5e2d4;
+      fill-opacity: 0.78;
+      stroke: #37536a;
+      stroke-width: 1.15;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .fallback-line {
+      stroke-width: 1.25;
+      stroke-opacity: 0.38;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .fallback-line-nuclear {
+      stroke: #15803d;
+      stroke-dasharray: 6 8;
+    }
+
+    .fallback-line-power {
+      stroke: #c2410c;
+      stroke-dasharray: 2 8;
+    }
+
+    .fallback-line-water {
+      stroke: #0369a1;
+      stroke-dasharray: 1 9;
+    }
+
+    .fallback-site-point,
+    .fallback-nuclear-point,
+    .fallback-water-point {
+      stroke: #ffffff;
+      stroke-width: 2.2;
+      vector-effect: non-scaling-stroke;
+      paint-order: stroke;
+    }
+
+    .fallback-site-point {
+      cursor: pointer;
+      filter: drop-shadow(0 5px 10px rgba(8, 18, 38, 0.34));
+    }
+
+    .fallback-site-point:hover,
+    .fallback-site-point:focus,
+    .fallback-site-point.selected {
+      stroke: var(--focus);
+      stroke-width: 4;
+      outline: none;
+    }
+
+    .fallback-nuclear-point,
+    .fallback-water-point {
+      opacity: 0.9;
+    }
+
+    .svg-map-notice {
+      position: absolute;
+      inset-inline-end: 12px;
+      inset-block-end: 12px;
+      max-inline-size: min(360px, calc(100vw - 420px));
+      padding: 8px 10px;
+      border: 1px solid rgba(15, 23, 42, 0.18);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.92);
+      color: #334155;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.25;
+      box-shadow: 0 8px 22px rgba(8, 18, 38, 0.16);
+    }
+
     .sr-only {
       position: absolute;
       overflow: hidden;
@@ -113,12 +203,74 @@
       z-index: 900;
       inline-size: min(390px, calc(100vw - 36px));
       max-block-size: calc(100dvh - 36px);
+      overflow: visible;
+      pointer-events: none;
+      transition: transform 180ms ease;
+      will-change: transform;
+    }
+
+    .ui-shell.is-collapsed {
+      transform: translate3d(calc(-100% - 18px), 0, 0);
+    }
+
+    .control-drawer {
       display: grid;
       gap: 10px;
+      max-block-size: inherit;
       overflow: auto;
       padding-inline-end: 4px;
-      pointer-events: none;
+      opacity: 1;
+      pointer-events: auto;
       scrollbar-gutter: stable;
+      transition: opacity 120ms ease, visibility 120ms ease;
+    }
+
+    .ui-shell.is-collapsed .control-drawer {
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .control-drawer-toggle {
+      position: absolute;
+      inset-block-start: 10px;
+      inset-inline-end: -44px;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      inline-size: 40px;
+      block-size: 48px;
+      border: 1px solid rgba(15, 23, 42, 0.24);
+      border-inline-start: 0;
+      border-radius: 0 8px 8px 0;
+      background: rgba(255, 255, 255, 0.96);
+      color: #0f172a;
+      box-shadow: 0 12px 28px rgba(8, 18, 38, 0.2);
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .control-drawer-toggle::before {
+      content: "";
+      inline-size: 10px;
+      block-size: 10px;
+      border: solid currentColor;
+      border-width: 0 3px 3px 0;
+      transform: rotate(135deg);
+      transition: transform 160ms ease;
+    }
+
+    .ui-shell.is-collapsed .control-drawer-toggle::before {
+      transform: rotate(-45deg);
+    }
+
+    .control-drawer-toggle:hover {
+      background: #ffffff;
+    }
+
+    .control-drawer-toggle:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
     }
 
     /* Shared panel treatment for the intro, controls, and detail card. */
@@ -314,6 +466,36 @@
     .layer-toggle:focus-within {
       border-color: #111827;
       box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.72);
+    }
+
+    .layer-toggle.disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+    }
+
+    .feature-help-tooltip {
+      position: fixed;
+      inset: 0 auto auto 0;
+      z-index: 1600;
+      max-inline-size: min(320px, calc(100vw - 16px));
+      border: 1px solid rgba(15, 23, 42, 0.22);
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: #fff;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+      color: #172033;
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1.35;
+      pointer-events: none;
+      transform: translate3d(-999px, -999px, 0);
+      opacity: 0;
+      transition: opacity 110ms ease;
+      will-change: transform;
+    }
+
+    .feature-help-tooltip.visible {
+      opacity: 1;
     }
 
     .swatch {
@@ -866,6 +1048,12 @@
       #map .leaflet-heatmap-layer {
         transition: none;
       }
+
+      .ui-shell,
+      .control-drawer,
+      .control-drawer-toggle::before {
+        transition: none;
+      }
     }
 
     @media (prefers-contrast: more) {
@@ -878,6 +1066,7 @@
       .result-button,
       .chip,
       .layer-toggle,
+      .control-drawer-toggle,
       .search-row input {
         border-color: #111827;
       }
@@ -894,6 +1083,10 @@
         inset-inline-start: 10px;
         inline-size: calc(100vw - 20px);
         max-block-size: calc(100dvh - 20px);
+      }
+
+      .ui-shell.is-collapsed {
+        transform: translate3d(calc(-100% - 10px), 0, 0);
       }
 
       h1 {
